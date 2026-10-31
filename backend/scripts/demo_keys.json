@@ -1,0 +1,27 @@
+{
+  "ORG_JLNMCH": {
+    "name": "JLNMCH Hospital Authority",
+    "private_key_hex": "13dcbf164b147d1dab0ddf80eb89fd839de95f6268c44c3f81c37dcd74e29494",
+    "public_key_hex": "b71344bd3fa86e0c21585fbc478792c930fd296abad027950a4dec99b3a26b1f"
+  },
+  "ORG_SADAR": {
+    "name": "Sadar Hospital Bhagalpur",
+    "private_key_hex": "4167e03b64fce2dfebf11ff9edc637610d5fcd917da4e7826b011a170a760f95",
+    "public_key_hex": "64b124bdbb4b3fd2c26e794e4b5588f17e80e74b4f9a90d64266902f33b2d1c2"
+  },
+  "ORG_MAYAGANJ": {
+    "name": "Mayaganj Blood Bank Authority",
+    "private_key_hex": "226c91d9fb52d9d7d1468cee17c2b40a787d6af8b82952777f17679150082f32",
+    "public_key_hex": "1d55c684ee3e5faa0bf9bd0054a66541bf8da85b5b7aff490d712609a669deb4"
+  },
+  "ORG_IIIT_BH": {
+    "name": "IIIT Bhagalpur Health Clinic",
+    "private_key_hex": "dc469dc952e79e6e6aebc1e81618c1059748ebcaf6edc7ed17f50e754505da55",
+    "public_key_hex": "80ac7bae17b6ff66142d9481acb7fa39cb56a2509a18ab7bc282b3abb7840e69"
+  },
+  "ORG_LOGISTICS": {
+    "name": "Bihar Rapid Medical Logistics Fleet",
+    "private_key_hex": "988a1edcc7446bf6979efcbb2aea742ed818d4451613728f8de5469c6aa1c97c",
+    "public_key_hex": "87f6a73a97b73f71d9b7a945b117394250e9b951504c182e6443b9f83058e9ac"
+  }
+}
