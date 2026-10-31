@@ -1,9 +1,9 @@
 @echo off
-title PharmaShield — Master Tripartite Launcher
+title PharmaShield - Master Tripartite Launcher
 color 0b
 
 echo ==============================================================================
-echo       PHARMASHIELD — TRIPARTITE MEDICAL LOGISTICS & CYBERSECURITY PLATFORM
+echo       PHARMASHIELD - TRIPARTITE MEDICAL LOGISTICS ^& CYBERSECURITY PLATFORM
 echo       Hackathon: Securathon 2026 (IIIT Bhagalpur) ^| Track 2: Cybersecurity
 echo ==============================================================================
 echo.
@@ -11,21 +11,20 @@ echo.
 :: Ensure current working directory is the script folder
 cd /d "%~dp0"
 
-echo [1/5] Checking Python Virtual Environment...
-if not exist "backend\venv\Scripts\python.exe" (
-    echo [*] Creating virtual environment at backend\venv...
-    python -m venv backend\venv
-    echo [*] Installing backend dependencies...
-    "backend\venv\Scripts\pip.exe" install -r backend\requirements.txt
+echo [1/5] Checking Python Environment...
+set "PYTHON_EXE=python"
+if exist "backend\venv\Scripts\python.exe" (
+    set "PYTHON_EXE=backend\venv\Scripts\python.exe"
+    echo [OK] Using virtual environment Python: backend\venv
 ) else (
-    echo [OK] Python environment verified at backend\venv
+    echo [OK] Using system Python
 )
 
 echo.
-echo [2/5] Initializing Database & Seeding Centers...
-"backend\venv\Scripts\python.exe" backend\scripts\seed.py
+echo [2/5] Initializing Database ^& Seeding Centers...
+"%PYTHON_EXE%" backend\scripts\seed.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] Seed script encountered an issue. Proceeding with launch...
+    echo [WARNING] Seed script notice. Proceeding with launch...
 )
 
 echo.
@@ -39,7 +38,7 @@ echo.
 echo [4/5] Launching Central Backend and 3 Portals in Dedicated Windows...
 
 :: Launch Central Backend
-start "PharmaShield - Backend (:8000)" /D "%~dp0" cmd /k "backend\venv\Scripts\python.exe -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+start "PharmaShield - Backend (:8000)" /D "%~dp0" cmd /k "%PYTHON_EXE% -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
 
 :: Launch Portal 1: Doctor/Patient (:5173)
 start "PharmaShield - Portal 1: Doctor/Patient (:5173)" /D "%~dp0portal-doctor-patient" cmd /k "npm run dev"
@@ -65,10 +64,10 @@ echo.
 echo ==============================================================================
 echo [SUCCESS] PharmaShield Tripartite Platform is LIVE!
 echo.
-echo   - Central Backend & WebSocket Bus:  http://localhost:8000  (Docs: /docs)
-echo   - Portal 1: Clinical (Doctor/Pt):   http://localhost:5173  (Bio-Vial & Matter.js)
-echo   - Portal 2: Pharma Operations Hub:  http://localhost:5174  (3D Conduits & Ed25519)
-echo   - Portal 3: Cyber Attack & Defense: http://localhost:5175  (Cyber Grid & Deflection)
+echo   - Central Backend ^& WebSocket Bus:  http://localhost:8000  (Docs: /docs)
+echo   - Portal 1: Clinical (Doctor/Pt):   http://localhost:5173  (Bio-Vial ^& Matter.js)
+echo   - Portal 2: Pharma Operations Hub:  http://localhost:5174  (3D Conduits ^& Ed25519)
+echo   - Portal 3: Cyber Attack ^& Defense: http://localhost:5175  (Cyber Grid ^& Deflection)
 echo.
 echo NOTE: Keep the 4 background command windows open.
 echo To shut down all services, close the 4 command windows.
