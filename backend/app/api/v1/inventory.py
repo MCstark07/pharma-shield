@@ -18,7 +18,6 @@ from backend.app.websockets import manager
 router = APIRouter(prefix="/inventory", tags=["Medical Resource Inventory"])
 
 @router.get("", response_model=List[InventoryItemResponse])
-@router.get("/", response_model=List[InventoryItemResponse])
 def get_inventory(
     category: Optional[ResourceCategory] = None,
     facility_id: Optional[str] = None,

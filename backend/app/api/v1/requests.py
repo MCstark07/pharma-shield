@@ -23,7 +23,6 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 router = APIRouter(prefix="/requests", tags=["Emergency Requests & Allocations"])
 
 @router.get("", response_model=List[MedicalRequestResponse])
-@router.get("/", response_model=List[MedicalRequestResponse])
 def list_emergency_requests(
     status: Optional[str] = None,
     facility_id: Optional[str] = None,
@@ -37,7 +36,6 @@ def list_emergency_requests(
     return query.order_by(MedicalRequest.created_at.desc()).all()
 
 @router.post("", response_model=MedicalRequestResponse)
-@router.post("/", response_model=MedicalRequestResponse)
 async def create_emergency_request(payload: MedicalRequestCreate, db: Session = Depends(get_db)):
     req_facility = db.query(Facility).filter(Facility.id == payload.requesting_facility_id).first()
     if not req_facility:

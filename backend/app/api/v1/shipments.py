@@ -23,7 +23,6 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 router = APIRouter(prefix="/shipments", tags=["Logistics & Cold Chain Telemetry"])
 
 @router.get("", response_model=List[ShipmentResponse])
-@router.get("/", response_model=List[ShipmentResponse])
 def list_shipments(
     status: Optional[ShipmentStatus] = None,
     db: Session = Depends(get_db)
@@ -34,7 +33,6 @@ def list_shipments(
     return query.order_by(Shipment.created_at.desc()).all()
 
 @router.post("", response_model=ShipmentResponse)
-@router.post("/", response_model=ShipmentResponse)
 async def create_shipment_dispatch(payload: ShipmentCreate, db: Session = Depends(get_db)):
     sender = db.query(Facility).filter(Facility.id == payload.sender_id).first()
     recipient = db.query(Facility).filter(Facility.id == payload.recipient_id).first()

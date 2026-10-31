@@ -1,7 +1,7 @@
 """
 PharmaShield — Flow Wave WebGL (Three.js r0.143.0) + Matter.js 3D Interactive Documentation Engine
-Renders a cyber-medical documentation portal with exact Flow Wave shaders, 3-stage EffectComposer pipeline,
-zero-gravity Matter.js physics badges, scroll-driven camera dive, and integrated OpenAPI explorer.
+Upright zero-gravity physics arena, deduplicated API explorer with live expandable execution drawers,
+radar cursor spotlight, and verbatim Flow Wave postprocessing pipeline.
 """
 
 def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interactive API Studio", openapi_url: str = "/openapi.json") -> str:
@@ -13,12 +13,12 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230aff7f'><path d='M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 4.5l5 2.8v3.7c0 3.12-2.16 6.04-5 6.84-2.84-.8-5-3.72-5-6.84V9.3l5-2.8z'/></svg>">
 
-  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <!-- Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Swagger UI CSS & Bundle for Live API Explorer -->
+  <!-- Swagger UI CSS & Bundle -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
   <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
 
@@ -32,7 +32,7 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
   }}
   </script>
 
-  <!-- Matter.js 0.19.0 (2D Physics Engine) -->
+  <!-- Matter.js 0.19.0 -->
   <script src="https://unpkg.com/matter-js@0.19.0/build/matter.min.js"></script>
 
   <style>
@@ -70,10 +70,10 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       pointer-events: auto;
     }}
 
-    /* Scroll Hint */
+    /* Fixed Bottom Scroll Hint */
     #scroll-hint {{
       position: fixed;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       font-family: 'JetBrains Mono', monospace;
@@ -85,32 +85,32 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       z-index: 50;
       pointer-events: none;
       animation: pulseHint 2.4s infinite ease-in-out;
-      background: rgba(2, 22, 12, 0.6);
-      padding: 6px 16px;
+      background: rgba(2, 22, 12, 0.7);
+      padding: 6px 18px;
       border-radius: 9999px;
-      border: 1px solid rgba(122, 255, 191, 0.25);
-      backdrop-filter: blur(8px);
+      border: 1px solid rgba(122, 255, 191, 0.3);
+      backdrop-filter: blur(10px);
     }}
 
     @keyframes pulseHint {{
-      0%, 100% {{ opacity: 0.45; transform: translate(-50%, 0); }}
-      50% {{ opacity: 1.0; transform: translate(-50%, 6px); }}
+      0%, 100% {{ opacity: 0.5; transform: translate(-50%, 0); }}
+      50% {{ opacity: 1.0; transform: translate(-50%, 5px); }}
     }}
 
-    /* Top Navigation Bar */
+    /* Sticky Navigation Bar with Integrated HUD */
     header.glass-nav {{
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 64px;
-      background: rgba(2, 22, 12, 0.75);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(52, 232, 154, 0.18);
+      height: 68px;
+      background: rgba(2, 22, 12, 0.88);
+      backdrop-filter: blur(16px) saturate(140%);
+      border-bottom: 1px solid rgba(52, 232, 154, 0.2);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 32px;
+      padding: 0 28px;
       z-index: 60;
     }}
 
@@ -127,7 +127,7 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
 
     .nav-badge {{
       background: rgba(10, 255, 127, 0.12);
-      border: 1px solid rgba(10, 255, 127, 0.35);
+      border: 1px solid rgba(10, 255, 127, 0.4);
       color: #0aff7f;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
@@ -141,7 +141,7 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     .nav-links {{
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
     }}
 
     .nav-links a {{
@@ -154,13 +154,50 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
 
     .nav-links a:hover {{
       color: #7affbf;
-      text-shadow: 0 0 8px rgba(122, 255, 191, 0.4);
+      text-shadow: 0 0 10px rgba(122, 255, 191, 0.4);
     }}
 
-    .nav-actions {{
+    .nav-right {{
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+    }}
+
+    /* Docked Telemetry Pill inside Navbar */
+    .docked-hud {{
+      background: rgba(4, 18, 12, 0.7);
+      border: 1px solid rgba(52, 232, 154, 0.25);
+      border-radius: 9999px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #aef0c0;
+    }}
+
+    .hud-val {{
+      color: #0aff7f;
+      font-weight: 700;
+    }}
+
+    .focus-toggle {{
+      background: rgba(10, 255, 127, 0.15);
+      border: 1px solid rgba(10, 255, 127, 0.4);
+      color: #7affbf;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }}
+
+    .focus-toggle.active {{
+      background: #0aff7f;
+      color: #02160c;
+      font-weight: 800;
     }}
 
     .cmd-btn {{
@@ -184,118 +221,42 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       background: rgba(10, 255, 127, 0.1);
     }}
 
-    /* Minimal Top-Right HUD Telemetry & Comfort Controls */
-    #telemetry-hud {{
-      position: fixed;
-      top: 76px;
-      right: 32px;
-      background: rgba(2, 22, 12, 0.82);
-      border: 1px solid rgba(52, 232, 154, 0.28);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(52, 232, 154, 0.1);
-      padding: 8px 16px;
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      z-index: 55;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: #aef0c0;
-    }}
-
-    .hud-item {{
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }}
-
-    .hud-val {{
-      color: #0aff7f;
-      font-weight: 700;
-    }}
-
-    .focus-toggle {{
-      background: rgba(10, 255, 127, 0.15);
-      border: 1px solid rgba(10, 255, 127, 0.4);
-      color: #7affbf;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      cursor: pointer;
-      font-size: 10px;
-      transition: all 0.2s;
-    }}
-
-    .focus-toggle.active {{
-      background: #0aff7f;
-      color: #02160c;
-      font-weight: 800;
-    }}
-
-    /* Zero-Gravity Matter.js Physics Belt (Floating Nodes) */
-    #physics-arena {{
-      position: fixed;
-      top: 130px;
-      left: 0;
-      right: 0;
-      height: 90px;
-      pointer-events: none;
-      z-index: 45;
-      overflow: visible;
-    }}
-
-    .physics-token {{
-      position: absolute;
-      top: 0;
-      left: 0;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      background: rgba(4, 18, 12, 0.8);
-      border: 1px solid rgba(52, 232, 154, 0.35);
-      backdrop-filter: blur(10px);
-      color: #aef0c0;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: grab;
-      user-select: none;
-      pointer-events: auto;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(52, 232, 154, 0.15);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      white-space: nowrap;
-      will-change: transform;
-    }}
-
-    .physics-token:hover {{
-      border-color: #0aff7f;
-      color: #ffffff;
-      box-shadow: 0 0 18px rgba(10, 255, 127, 0.4);
-    }}
-
-    /* Documentation Scroll Chapters */
+    /* Documentation Viewport */
     .docs-viewport {{
       position: relative;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 160px 24px 100px;
+      padding: 120px 24px 100px;
       display: flex;
       flex-direction: column;
-      gap: 40vh; /* Spaced across the 620vh height */
+      gap: 32vh;
     }}
 
     .doc-section {{
-      background: rgba(2, 22, 12, 0.72);
-      border: 1px solid rgba(52, 232, 154, 0.28);
-      border-radius: 20px;
-      backdrop-filter: blur(16px);
+      position: relative;
+      background: rgba(2, 22, 12, 0.68);
+      border: 1px solid rgba(52, 232, 154, 0.18);
+      border-radius: 24px;
+      backdrop-filter: blur(16px) saturate(140%);
       padding: 40px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(10, 255, 127, 0.05);
-      transition: all 0.3s ease;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(10, 255, 127, 0.04);
+      transition: border-color 0.3s, box-shadow 0.3s;
+      overflow: hidden;
     }}
 
-    .doc-section:hover {{
-      border-color: rgba(52, 232, 154, 0.5);
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(52, 232, 154, 0.15);
+    .doc-section::before {{
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(500px circle at var(--mouse-x, -999px) var(--mouse-y, -999px), rgba(52, 232, 154, 0.12), transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }}
+
+    .doc-section > * {{
+      position: relative;
+      z-index: 2;
     }}
 
     .hero-eyebrow {{
@@ -311,14 +272,14 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     }}
 
     .doc-title {{
-      font-size: 38px;
+      font-size: 40px;
       font-weight: 900;
       letter-spacing: -0.03em;
       line-height: 1.15;
       background: linear-gradient(135deg, #ffffff 40%, #7affbf 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }}
 
     .doc-desc {{
@@ -326,29 +287,127 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       font-size: 16px;
       line-height: 1.6;
       max-width: 820px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }}
 
-    /* Grid cards inside sections */
+    /* Dedicated Interactive Hero Physics Playground */
+    #hero-physics-container {{
+      position: relative;
+      background: rgba(4, 18, 12, 0.7);
+      border: 1px solid rgba(52, 232, 154, 0.25);
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }}
+
+    .physics-playground-header {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }}
+
+    .playground-title {{
+      color: #0aff7f;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }}
+
+    .playground-hint {{
+      color: #64748b;
+      font-size: 10px;
+    }}
+
+    #hero-physics-arena {{
+      position: relative;
+      width: 100%;
+      height: 160px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: rgba(1, 10, 5, 0.6);
+      border: 1px dashed rgba(52, 232, 154, 0.18);
+    }}
+
+    .physics-token {{
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      background: rgba(4, 22, 14, 0.9);
+      border: 1px solid rgba(52, 232, 154, 0.4);
+      backdrop-filter: blur(12px);
+      color: #aef0c0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: grab;
+      user-select: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(52, 232, 154, 0.2);
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+      white-space: nowrap;
+      will-change: transform;
+      z-index: 20;
+    }}
+
+    .physics-token:hover {{
+      border-color: #0aff7f;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(10, 255, 127, 0.5);
+    }}
+
+    .physics-token.ripple-pulse {{
+      animation: rippleAnim 0.6s ease-out;
+    }}
+
+    @keyframes rippleAnim {{
+      0% {{ transform: scale(1); box-shadow: 0 0 0 0 rgba(10, 255, 127, 0.8); }}
+      50% {{ transform: scale(1.08); box-shadow: 0 0 25px 8px rgba(10, 255, 127, 0.6); }}
+      100% {{ transform: scale(1); box-shadow: 0 0 12px rgba(52, 232, 154, 0.2); }}
+    }}
+
+    /* Docked badge bar when Focus Mode is ON */
+    #hero-physics-arena.docked {{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      height: auto;
+      padding: 16px;
+    }}
+
+    #hero-physics-arena.docked .physics-token {{
+      position: static !important;
+      transform: none !important;
+      cursor: pointer;
+    }}
+
+    /* Cards Grid */
     .cards-grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 20px;
       margin-top: 24px;
     }}
 
     .glass-card {{
+      position: relative;
       background: rgba(9, 30, 18, 0.6);
       border: 1px solid rgba(52, 232, 154, 0.18);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 24px;
       transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      overflow: hidden;
     }}
 
     .glass-card:hover {{
       transform: translateY(-4px);
       border-color: #0aff7f;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(10, 255, 127, 0.12);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(10, 255, 127, 0.12);
     }}
 
     .card-title {{
@@ -367,65 +426,256 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       line-height: 1.6;
     }}
 
-    /* Interactive Live Probe Cards */
-    .probe-grid {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
-    }}
-
-    .probe-card {{
-      background: rgba(4, 18, 12, 0.85);
-      border: 1px solid rgba(52, 232, 154, 0.25);
-      border-radius: 12px;
-      padding: 16px;
+    /* -------------------------------------------------------------
+       DEDUPLICATED API EXPLORER WITH EXPANDABLE LIVE DRAWERS
+       ------------------------------------------------------------- */
+    .api-explorer-list {{
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
+      margin-top: 24px;
     }}
 
-    .probe-btn {{
-      background: #0aff7f;
-      color: #02160c;
-      font-weight: 700;
-      font-size: 12px;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 14px;
-      cursor: pointer;
+    .api-row-item {{
+      background: rgba(4, 18, 12, 0.85);
+      border: 1px solid rgba(52, 232, 154, 0.22);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }}
+
+    .api-row-item:hover {{
+      border-color: rgba(52, 232, 154, 0.45);
+    }}
+
+    .api-row-header {{
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      gap: 16px;
+    }}
+
+    .api-row-left {{
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+    }}
+
+    /* Luminous Method Badges */
+    .method-badge {{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }}
+
+    .method-badge.get {{
+      color: #00f5d4;
+      background: rgba(0, 245, 212, 0.12);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.15);
+    }}
+
+    .method-badge.post {{
+      color: #34e89a;
+      background: rgba(52, 232, 154, 0.14);
+      border: 1px solid rgba(52, 232, 154, 0.45);
+      box-shadow: 0 0 10px rgba(52, 232, 154, 0.15);
+    }}
+
+    .api-path {{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+    }}
+
+    .api-summary {{
+      color: #94a3b8;
+      font-size: 12px;
+      margin-left: 8px;
+    }}
+
+    .api-try-pill {{
+      background: rgba(10, 255, 127, 0.12);
+      border: 1px solid rgba(10, 255, 127, 0.35);
+      color: #0aff7f;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
       gap: 6px;
       transition: all 0.2s;
     }}
 
-    .probe-btn:hover {{
-      background: #7affbf;
-      box-shadow: 0 0 15px rgba(10, 255, 127, 0.5);
+    .api-row-item:hover .api-try-pill {{
+      background: #0aff7f;
+      color: #02160c;
     }}
 
-    .probe-out {{
-      background: #000000;
-      border: 1px solid rgba(52, 232, 154, 0.15);
+    .chevron-icon {{
+      transition: transform 0.25s ease;
+    }}
+
+    .api-row-item.open .chevron-icon {{
+      transform: rotate(180deg);
+    }}
+
+    /* Expandable Drawer Body */
+    .api-drawer {{
+      display: none;
+      border-top: 1px solid rgba(52, 232, 154, 0.15);
+      background: rgba(1, 12, 7, 0.7);
+      padding: 20px;
+    }}
+
+    .api-row-item.open .api-drawer {{
+      display: block;
+    }}
+
+    .drawer-tabs {{
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(52, 232, 154, 0.15);
+      padding-bottom: 8px;
+    }}
+
+    .tab-btn {{
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
       border-radius: 6px;
-      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }}
+
+    .tab-btn.active {{
+      background: rgba(10, 255, 127, 0.15);
+      color: #0aff7f;
+      font-weight: 700;
+    }}
+
+    .drawer-form {{
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }}
+
+    .field-label {{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #aef0c0;
+      margin-bottom: 4px;
+    }}
+
+    .payload-input {{
+      width: 100%;
+      background: #010804;
+      border: 1px solid rgba(52, 232, 154, 0.25);
+      border-radius: 8px;
+      padding: 12px;
+      color: #aef0c0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      resize: vertical;
+      min-height: 90px;
+    }}
+
+    .payload-input:focus {{
+      outline: none;
+      border-color: #0aff7f;
+      box-shadow: 0 0 12px rgba(10, 255, 127, 0.25);
+    }}
+
+    .action-row {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }}
+
+    .exec-btn {{
+      background: #0aff7f;
+      color: #02160c;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 800;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }}
+
+    .exec-btn:hover {{
+      background: #7affbf;
+      box-shadow: 0 0 20px rgba(10, 255, 127, 0.6);
+      transform: scale(1.02);
+    }}
+
+    .response-box {{
+      margin-top: 14px;
+      background: #000000;
+      border: 1px solid rgba(52, 232, 154, 0.2);
+      border-radius: 8px;
+      padding: 14px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       color: #34e89a;
-      max-height: 140px;
+      max-height: 240px;
       overflow-y: auto;
       white-space: pre-wrap;
+    }}
+
+    /* Toast Notification */
+    #toast {{
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #02160c;
+      border: 1px solid #0aff7f;
+      color: #0aff7f;
+      box-shadow: 0 0 25px rgba(10, 255, 127, 0.35);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 120;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }}
+
+    #toast.show {{
+      opacity: 1;
+      transform: translateY(0);
     }}
 
     /* Code Block styling */
     pre.code-block {{
       background: #010c06;
       border: 1px solid rgba(52, 232, 154, 0.2);
-      border-radius: 10px;
-      padding: 18px;
+      border-radius: 12px;
+      padding: 20px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
       color: #aef0c0;
@@ -436,13 +686,13 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
 
     .copy-pill {{
       position: absolute;
-      top: 10px;
-      right: 12px;
+      top: 12px;
+      right: 14px;
       background: rgba(10, 255, 127, 0.15);
-      border: 1px solid rgba(10, 255, 127, 0.3);
+      border: 1px solid rgba(10, 255, 127, 0.35);
       color: #0aff7f;
       font-size: 10px;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
@@ -455,10 +705,10 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
 
     /* Swagger Dark Theme Scoped Overrides */
     #swagger-wrapper {{
-      margin-top: 30px;
+      margin-top: 36px;
       background: rgba(2, 22, 12, 0.85);
-      border: 1px solid rgba(52, 232, 154, 0.28);
-      border-radius: 16px;
+      border: 1px solid rgba(52, 232, 154, 0.25);
+      border-radius: 18px;
       padding: 24px;
       overflow: hidden;
     }}
@@ -473,13 +723,13 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     #cmd-palette {{
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.82);
       backdrop-filter: blur(12px);
       z-index: 100;
       display: none;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 120px;
+      padding-top: 100px;
     }}
 
     #cmd-palette.open {{
@@ -487,11 +737,11 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     }}
 
     .palette-box {{
-      width: 600px;
+      width: 640px;
       max-width: 90vw;
       background: #02160c;
       border: 1px solid #0aff7f;
-      box-shadow: 0 0 50px rgba(10, 255, 127, 0.25);
+      box-shadow: 0 0 50px rgba(10, 255, 127, 0.3);
       border-radius: 16px;
       overflow: hidden;
     }}
@@ -502,14 +752,14 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       border: none;
       border-bottom: 1px solid rgba(52, 232, 154, 0.2);
       padding: 18px 24px;
-      font-size: 16px;
+      font-size: 15px;
       color: #f8fafc;
       font-family: 'JetBrains Mono', monospace;
       outline: none;
     }}
 
     .palette-results {{
-      max-height: 340px;
+      max-height: 360px;
       overflow-y: auto;
       padding: 8px;
     }}
@@ -527,13 +777,12 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     }}
 
     .palette-item:hover, .palette-item.active {{
-      background: rgba(10, 255, 127, 0.12);
+      background: rgba(10, 255, 127, 0.14);
       color: #0aff7f;
     }}
 
-    /* Focus Mode dimming */
     body.focus-mode #scene {{
-      opacity: 0.35;
+      opacity: 0.3;
       transition: opacity 0.5s ease;
     }}
   </style>
@@ -543,7 +792,7 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
   <!-- WebGL Three.js Fixed Canvas -->
   <canvas id="scene"></canvas>
 
-  <!-- Navigation Bar -->
+  <!-- Sticky Glass Navigation with Integrated HUD -->
   <header class="glass-nav">
     <a href="/" class="nav-brand">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0aff7f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -559,14 +808,22 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       <a href="#quickstart">Quickstart</a>
       <a href="#contracts">Contracts &amp; Math</a>
       <a href="#cryptography">Ed25519 Ledger</a>
-      <a href="#probes">Live Probes</a>
-      <a href="#swagger-wrapper">API Explorer</a>
+      <a href="#api-explorer">API Console</a>
+      <a href="#swagger-wrapper">Full Specs</a>
       <a href="http://localhost:5173" target="_blank" style="color: #0aff7f;">Clinical 5173 ↗</a>
       <a href="http://localhost:5174" target="_blank" style="color: #34e89a;">Pharma Ops 5174 ↗</a>
       <a href="http://localhost:5175" target="_blank" style="color: #7affbf;">Cyber Lab 5175 ↗</a>
     </nav>
 
-    <div class="nav-actions">
+    <div class="nav-right">
+      <!-- Integrated HUD Pill -->
+      <div class="docked-hud">
+        <span>FPS <span class="hud-val" id="hud-fps">60</span></span>
+        <span>SCROLL <span class="hud-val" id="hud-scroll">0%</span></span>
+        <span>SWELL <span class="hud-val" id="hud-swell">3.00</span></span>
+        <button class="focus-toggle" id="focus-btn" title="Dampen waves &amp; focus on reading">Focus Read Mode</button>
+      </div>
+
       <button class="cmd-btn" id="open-cmd">
         <span>Search</span>
         <kbd>Ctrl+K</kbd>
@@ -574,39 +831,11 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
     </div>
   </header>
 
-  <!-- Top-Right HUD Telemetry & Comfort Controls -->
-  <div id="telemetry-hud">
-    <div class="hud-item">
-      <span>FPS</span>
-      <span class="hud-val" id="hud-fps">60</span>
-    </div>
-    <div class="hud-item">
-      <span>SCROLL</span>
-      <span class="hud-val" id="hud-scroll">0%</span>
-    </div>
-    <div class="hud-item">
-      <span>SWELL</span>
-      <span class="hud-val" id="hud-swell">3.00</span>
-    </div>
-    <button class="focus-toggle" id="focus-btn" title="Dampen waves &amp; focus on text reading">Focus Read Mode</button>
-  </div>
-
-  <!-- Zero-Gravity Matter.js Physics Belt -->
-  <div id="physics-arena">
-    <div class="physics-token" data-idx="0">⚡ GET /health</div>
-    <div class="physics-token" data-idx="1">🩸 Blood Compatibility</div>
-    <div class="physics-token" data-idx="2">❄️ Cold-Chain 2-8°C</div>
-    <div class="physics-token" data-idx="3">🔐 Ed25519 Signatures</div>
-    <div class="physics-token" data-idx="4">⛓️ SHA-256 Hash Chain</div>
-    <div class="physics-token" data-idx="5">📊 DOS &lt; 2d Forecast</div>
-    <div class="physics-token" data-idx="6">🛰️ IoT Telemetry Ingest</div>
-  </div>
-
   <!-- 620vh Scroll Container -->
   <div id="scroll-host">
     <div class="docs-viewport">
 
-      <!-- Section 1: Hero & Architecture -->
+      <!-- Section 1: Hero & Architecture with Dedicated Interactive Physics Playground -->
       <section class="doc-section" id="quickstart">
         <div class="hero-eyebrow">
           <span>●</span> Autonomous Medical Supply Protection
@@ -615,6 +844,23 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
         <p class="doc-desc">
           High-performance FastAPI logistics &amp; cryptographic bus orchestrating emergency supplies across Bhagalpur healthcare networks. Powered by deterministic SHA-256 hash chaining, Ed25519 digital signatures, continuous 2–8°C thermal excursion detection, and real-time WebSockets.
         </p>
+
+        <!-- DEDICATED INTERACTIVE HERO PHYSICS PLAYGROUND (MIN-HEIGHT 260px) -->
+        <div id="hero-physics-container">
+          <div class="physics-playground-header">
+            <span class="playground-title">⚡ ZERO-GRAVITY INTERACTIVE PHYSICS BELT</span>
+            <span class="playground-hint">Pills locked upright (inertia: ∞) • Grab, toss &amp; fling • Click to jump</span>
+          </div>
+          <div id="hero-physics-arena">
+            <div class="physics-token" data-target="api-health" data-idx="0">⚡ GET /health</div>
+            <div class="physics-token" data-target="contracts" data-idx="1">🩸 Blood Compatibility</div>
+            <div class="physics-token" data-target="api-telemetry" data-idx="2">❄️ Cold-Chain 2-8°C</div>
+            <div class="physics-token" data-target="cryptography" data-idx="3">🔐 Ed25519 Signatures</div>
+            <div class="physics-token" data-target="cryptography" data-idx="4">⛓️ SHA-256 Hash Chain</div>
+            <div class="physics-token" data-target="api-inventory" data-idx="5">📊 DOS &lt; 2d Forecast</div>
+            <div class="physics-token" data-target="api-telemetry" data-idx="6">📡 IoT Telemetry</div>
+          </div>
+        </div>
 
         <div class="cards-grid">
           <div class="glass-card">
@@ -642,11 +888,6 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
             </p>
           </div>
         </div>
-
-        <pre class="code-block"><button class="copy-pill" onclick="copySnippet('curl-start')">Copy</button><code id="curl-start"># Ingest cold-chain IoT telemetry with automated excursion trigger
-curl -X POST "http://localhost:8000/api/v1/shipments/SHP-001/telemetry" \
-     -H "Content-Type: application/json" \
-     -d '{{"temperature_c": 12.4, "latitude": 25.2445, "longitude": 87.0125, "battery_pct": 98}}'</code></pre>
       </section>
 
       <!-- Section 2: Core Domain & Mathematical Contracts -->
@@ -694,7 +935,7 @@ curl -X POST "http://localhost:8000/api/v1/shipments/SHP-001/telemetry" \
           Zero fake blockchain, zero gas fees. 100% deterministic SHA-256 canonical hash chaining combined with asymmetric Ed25519 keypairs provides enterprise-grade tamper evidence.
         </p>
 
-        <pre class="code-block"><button class="copy-pill" onclick="copySnippet('hash-chain-math')">Copy</button><code id="hash-chain-math"># Hash Chain Formula
+        <pre class="code-block"><button class="copy-pill" onclick="copySnippet('hash-chain-math')">Copy</button><code id="hash-chain-math"># Canonical Hash Chain Formulation
 H_0 = "0000000000000000000000000000000000000000000000000000000000000000"
 H_i = SHA-256( H_{{i-1}} || CanonicalJSON(EventPayload_i) )
 Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
@@ -703,7 +944,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
           <div class="glass-card">
             <div class="card-title">Deterministic Canonical JSON</div>
             <div class="card-body">
-              Keys are strictly sorted with zero whitespace separators (<code>json.dumps(data, sort_keys=True, separators=(',', ':'))</code>). Any space or key reorder invalidates the SHA-256 digest immediately.
+              Keys are strictly sorted with zero whitespace separators (<code>json.dumps(data, sort_keys=True, separators=(',', ':'))</code>). Any whitespace difference invalidates the SHA-256 digest immediately.
             </div>
           </div>
           <div class="glass-card">
@@ -715,49 +956,181 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
         </div>
       </section>
 
-      <!-- Section 4: Live Probes -->
-      <section class="doc-section" id="probes">
+      <!-- Section 4: Deduplicated Interactive API Explorer with Expandable Drawers -->
+      <section class="doc-section" id="api-explorer">
         <div class="hero-eyebrow">
-          <span>●</span> Section 04 // Live Interactive Probes
+          <span>●</span> Section 04 // Interactive Live API Console
         </div>
-        <h2 class="doc-title">Real-Time Central Bus Probes</h2>
+        <h2 class="doc-title">Canonical REST Endpoints &amp; Live Drawers</h2>
         <p class="doc-desc">
-          Execute direct probes against the live running backend on port 8000 and inspect cryptographic ledger responses instantly.
+          Click any endpoint row below to expand its live execution drawer, edit parameters, and test real server responses with instant WebGL wave feedback.
         </p>
 
-        <div class="probe-grid">
-          <div class="probe-card">
-            <div>
-              <div class="card-title">API Health Check</div>
-              <div class="card-body">Verifies server uptime, SQLite/Postgres connection, and WebSocket bus status.</div>
+        <div class="api-explorer-list">
+
+          <!-- 1. GET /health -->
+          <div class="api-row-item" id="api-health">
+            <div class="api-row-header" onclick="toggleDrawer(this)">
+              <div class="api-row-left">
+                <span class="method-badge get">GET</span>
+                <span class="api-path">/health</span>
+                <span class="api-summary">Server uptime, SQLite/PostgreSQL health &amp; WebSocket bus status</span>
+              </div>
+              <div class="api-try-pill">
+                <span>Try Live</span>
+                <span class="chevron-icon">▼</span>
+              </div>
             </div>
-            <button class="probe-btn" onclick="runProbe('/health', 'out-health')">Probe /health</button>
-            <div class="probe-out" id="out-health">Click probe button above...</div>
+            <div class="api-drawer">
+              <div class="drawer-tabs">
+                <button class="tab-btn active">Live Console</button>
+                <button class="tab-btn" data-snippet="curl -X GET http://localhost:8000/health" onclick="copySnippetFromAttr(this)">cURL</button>
+                <button class="tab-btn" data-snippet="fetch('http://localhost:8000/health').then(r => r.json())" onclick="copySnippetFromAttr(this)">Fetch</button>
+                <button class="tab-btn" data-snippet="import requests&#10;res = requests.get('http://localhost:8000/health')" onclick="copySnippetFromAttr(this)">Python</button>
+              </div>
+              <div class="drawer-form">
+                <div class="action-row">
+                  <span class="field-label">Target: http://localhost:8000/health</span>
+                  <button class="exec-btn" onclick="executeLiveRequest('GET', '/health', null, 'res-health')">
+                    <span>⚡ Execute Request</span>
+                  </button>
+                </div>
+                <div class="response-box" id="res-health">Click "Execute Request" above to test live endpoint...</div>
+              </div>
+            </div>
           </div>
 
-          <div class="probe-card">
-            <div>
-              <div class="card-title">Inventory &amp; DOS Alerts</div>
-              <div class="card-body">Queries active Bhagalpur blood banks &amp; hospital batches for low DOS alerts.</div>
+          <!-- 2. GET /api/v1/inventory -->
+          <div class="api-row-item" id="api-inventory">
+            <div class="api-row-header" onclick="toggleDrawer(this)">
+              <div class="api-row-left">
+                <span class="method-badge get">GET</span>
+                <span class="api-path">/api/v1/inventory</span>
+                <span class="api-summary">Query 6-category medical supplies, batch numbers, &amp; DOS stock alerts</span>
+              </div>
+              <div class="api-try-pill">
+                <span>Try Live</span>
+                <span class="chevron-icon">▼</span>
+              </div>
             </div>
-            <button class="probe-btn" onclick="runProbe('/api/v1/inventory?stock_alerts_only=true', 'out-inv')">Probe /inventory</button>
-            <div class="probe-out" id="out-inv">Click probe button above...</div>
+            <div class="api-drawer">
+              <div class="drawer-tabs">
+                <button class="tab-btn active">Live Console</button>
+                <button class="tab-btn" data-snippet="curl -X GET 'http://localhost:8000/api/v1/inventory?stock_alert=true'" onclick="copySnippetFromAttr(this)">cURL</button>
+              </div>
+              <div class="drawer-form">
+                <label class="field-label">Query Parameters (URL suffix):</label>
+                <input type="text" class="payload-input" style="min-height: auto; height: 38px;" id="query-inventory" value="?stock_alert=true">
+                <div class="action-row">
+                  <span class="field-label">Target: /api/v1/inventory</span>
+                  <button class="exec-btn" onclick="executeLiveRequest('GET', '/api/v1/inventory' + document.getElementById('query-inventory').value, null, 'res-inventory')">
+                    <span>⚡ Execute Request</span>
+                  </button>
+                </div>
+                <div class="response-box" id="res-inventory">Click "Execute Request" above to query inventory...</div>
+              </div>
+            </div>
           </div>
 
-          <div class="probe-card">
-            <div>
-              <div class="card-title">Cryptographic Ledger Head</div>
-              <div class="card-body">Fetches latest canonical audit event and validates its Ed25519 signature.</div>
+          <!-- 3. POST /api/v1/requests -->
+          <div class="api-row-item" id="api-requests">
+            <div class="api-row-header" onclick="toggleDrawer(this)">
+              <div class="api-row-left">
+                <span class="method-badge post">POST</span>
+                <span class="api-path">/api/v1/requests</span>
+                <span class="api-summary">Create an emergency requisition with AI matching trigger</span>
+              </div>
+              <div class="api-try-pill">
+                <span>Try Live</span>
+                <span class="chevron-icon">▼</span>
+              </div>
             </div>
-            <button class="probe-btn" onclick="runProbe('/api/v1/security/ledger', 'out-ledger')">Inspect Ledger</button>
-            <div class="probe-out" id="out-ledger">Click probe button above...</div>
+            <div class="api-drawer">
+              <div class="drawer-tabs">
+                <button class="tab-btn active">Live Console</button>
+                <button class="tab-btn" data-snippet="curl -X POST http://localhost:8000/api/v1/requests -H 'Content-Type: application/json' -d '{{&quot;requesting_facility_id&quot;:&quot;FAC-JLNMCH-01&quot;,&quot;category&quot;:&quot;BLOOD_COMPONENTS&quot;,&quot;resource_code&quot;:&quot;O_POS_RBC&quot;,&quot;quantity&quot;:5,&quot;urgency&quot;:&quot;CRITICAL&quot;}}'" onclick="copySnippetFromAttr(this)">cURL</button>
+              </div>
+              <div class="drawer-form">
+                <label class="field-label">JSON Request Body:</label>
+                <textarea class="payload-input" id="body-request">{{"requesting_facility_id": "FAC-JLNMCH-01", "category": "BLOOD_COMPONENTS", "resource_code": "O_POS_RBC", "quantity": 5, "urgency": "CRITICAL", "clinical_note_redacted": "Massive trauma transfusion protocol active"}}</textarea>
+                <div class="action-row">
+                  <span class="field-label">Target: /api/v1/requests</span>
+                  <button class="exec-btn" onclick="executeLiveRequest('POST', '/api/v1/requests', document.getElementById('body-request').value, 'res-request')">
+                    <span>⚡ Submit Emergency Request</span>
+                  </button>
+                </div>
+                <div class="response-box" id="res-request">Click button above to submit payload...</div>
+              </div>
+            </div>
           </div>
+
+          <!-- 4. POST /api/v1/shipments/{id}/telemetry -->
+          <div class="api-row-item" id="api-telemetry">
+            <div class="api-row-header" onclick="toggleDrawer(this)">
+              <div class="api-row-left">
+                <span class="method-badge post">POST</span>
+                <span class="api-path">/api/v1/shipments/SHP-001/telemetry</span>
+                <span class="api-summary">Ingest cold-chain sensor reading (triggers UNDER_REVIEW if &lt;2°C or &gt;8°C)</span>
+              </div>
+              <div class="api-try-pill">
+                <span>Try Live</span>
+                <span class="chevron-icon">▼</span>
+              </div>
+            </div>
+            <div class="api-drawer">
+              <div class="drawer-tabs">
+                <button class="tab-btn active">Live Console</button>
+                <button class="tab-btn" data-snippet="curl -X POST http://localhost:8000/api/v1/shipments/SHP-001/telemetry -H 'Content-Type: application/json' -d '{{&quot;temperature_c&quot;: 12.8, &quot;latitude&quot;: 25.2445, &quot;longitude&quot;: 87.0125, &quot;battery_pct&quot;: 95}}'" onclick="copySnippetFromAttr(this)">cURL</button>
+              </div>
+              <div class="drawer-form">
+                <label class="field-label">JSON Telemetry Payload (Try 12.8°C for excursion, or 4.5°C for normal):</label>
+                <textarea class="payload-input" id="body-telemetry">{{"temperature_c": 12.8, "latitude": 25.2445, "longitude": 87.0125, "battery_pct": 94}}</textarea>
+                <div class="action-row">
+                  <span class="field-label">Target: /api/v1/shipments/SHP-001/telemetry</span>
+                  <button class="exec-btn" onclick="executeLiveRequest('POST', '/api/v1/shipments/SHP-001/telemetry', document.getElementById('body-telemetry').value, 'res-telemetry')">
+                    <span>⚡ Send IoT Telemetry</span>
+                  </button>
+                </div>
+                <div class="response-box" id="res-telemetry">Click button above to ingest sensor reading...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. GET /api/v1/security/ledger -->
+          <div class="api-row-item" id="api-ledger">
+            <div class="api-row-header" onclick="toggleDrawer(this)">
+              <div class="api-row-left">
+                <span class="method-badge get">GET</span>
+                <span class="api-path">/api/v1/security/ledger</span>
+                <span class="api-summary">Query immutable SHA-256 hash-chained records with Ed25519 signatures</span>
+              </div>
+              <div class="api-try-pill">
+                <span>Try Live</span>
+                <span class="chevron-icon">▼</span>
+              </div>
+            </div>
+            <div class="api-drawer">
+              <div class="drawer-tabs">
+                <button class="tab-btn active">Live Console</button>
+              </div>
+              <div class="drawer-form">
+                <div class="action-row">
+                  <span class="field-label">Target: /api/v1/security/ledger?limit=10</span>
+                  <button class="exec-btn" onclick="executeLiveRequest('GET', '/api/v1/security/ledger?limit=10', null, 'res-ledger')">
+                    <span>⚡ Inspect Ledger</span>
+                  </button>
+                </div>
+                <div class="response-box" id="res-ledger">Click "Inspect Ledger" above to query audit chain...</div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Embedded Swagger UI -->
+        <!-- Embedded OpenAPI Swagger UI -->
         <div id="swagger-wrapper">
           <div class="card-title" style="margin-bottom: 16px;">
-            <span>📘</span> OpenAPI Specification &amp; Interactive Route Sandbox
+            <span>📘</span> Complete OpenAPI 3.0 Interactive Specification (All 39 Routes)
           </div>
           <div id="swagger-ui"></div>
         </div>
@@ -769,16 +1142,23 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
   <!-- Bottom Scroll Hint -->
   <div id="scroll-hint">SCROLL ↓</div>
 
+  <!-- Toast Notification -->
+  <div id="toast">Copied to clipboard</div>
+
   <!-- Command Palette Modal -->
   <div id="cmd-palette">
     <div class="palette-box">
-      <input type="text" class="palette-input" id="palette-search" placeholder="Type to search endpoints or docs... (Esc to close)">
+      <input type="text" class="palette-input" id="palette-search" placeholder="Type to search endpoints, models, or docs... (Esc to close)">
       <div class="palette-results" id="palette-list">
         <div class="palette-item" onclick="jumpSection('quickstart')"><span>🚀 Quickstart &amp; Architecture</span><span>Section 01</span></div>
         <div class="palette-item" onclick="jumpSection('contracts')"><span>🩸 Medical Contracts &amp; Safety</span><span>Section 02</span></div>
         <div class="palette-item" onclick="jumpSection('cryptography')"><span>🔐 Ed25519 Cryptographic Ledger</span><span>Section 03</span></div>
-        <div class="palette-item" onclick="jumpSection('probes')"><span>⚡ Live Endpoint Probes</span><span>Section 04</span></div>
-        <div class="palette-item" onclick="jumpSection('swagger-wrapper')"><span>📘 Swagger Interactive Sandbox</span><span>OpenAPI</span></div>
+        <div class="palette-item" onclick="jumpSection('api-explorer')"><span>⚡ Canonical REST API Explorer</span><span>Section 04</span></div>
+        <div class="palette-item" onclick="openDrawerById('api-health')"><span>⚡ GET /health</span><span>Endpoint</span></div>
+        <div class="palette-item" onclick="openDrawerById('api-inventory')"><span>📦 GET /api/v1/inventory</span><span>Endpoint</span></div>
+        <div class="palette-item" onclick="openDrawerById('api-requests')"><span>🚨 POST /api/v1/requests</span><span>Endpoint</span></div>
+        <div class="palette-item" onclick="openDrawerById('api-telemetry')"><span>📡 POST /api/v1/shipments/telemetry</span><span>Endpoint</span></div>
+        <div class="palette-item" onclick="openDrawerById('api-ledger')"><span>🛡️ GET /api/v1/security/ledger</span><span>Endpoint</span></div>
         <div class="palette-item" onclick="window.open('http://localhost:5173')"><span>🩺 Portal 1: Doctor Clinical</span><span>:5173 ↗</span></div>
         <div class="palette-item" onclick="window.open('http://localhost:5174')"><span>📦 Portal 2: Pharma Ops</span><span>:5174 ↗</span></div>
         <div class="palette-item" onclick="window.open('http://localhost:5175')"><span>🛡️ Portal 3: Cyber Lab</span><span>:5175 ↗</span></div>
@@ -786,7 +1166,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     </div>
   </div>
 
-  <!-- Three.js Flow Wave & Matter.js Core Engine -->
+  <!-- Three.js Flow Wave (EXACT UNTOUCHED SPECIFICATION) -->
   <script type="module">
     import * as THREE from 'three';
     import {{ EffectComposer }} from 'three/addons/postprocessing/EffectComposer.js';
@@ -797,7 +1177,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     import {{ CopyShader }} from 'three/addons/shaders/CopyShader.js';
 
     // -------------------------------------------------------------
-    // 1. EXACT FIXED CONSTANTS & HELPERS (VERBATIM SPECIFICATION)
+    // 1. EXACT FIXED CONSTANTS & HELPERS (DO NOT ALTER)
     // -------------------------------------------------------------
     const bgColor         = '#02160c';   // FinalPass background tint
     const flameColor      = '#0aff7f';   // corner-flame A
@@ -813,7 +1193,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     const pointSize       = 5.5;         // point base size
     const brightness      = 0.45;        // point color multiplier
     const waveHeight      = 3;           // base swell amplitude
-    let   flow            = 1;           // noise scroll speed (toggleable)
+    let   flow            = 1;           // noise scroll speed
     const tilt            = 0;           // sheet X rotation (negated)
     const scale           = 0.275;       // shrinks the sheet to frame
     const scrollRise      = 1.0;         // swell amplitude growth on scroll
@@ -1173,6 +1553,13 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
       mouseTarget.y = -(e.clientY / window.innerHeight) * 2 + 1;
       lastMouseMove = performance.now();
       POINTER.activity = 1.0;
+
+      // Cursor spotlight tracking on doc cards
+      document.querySelectorAll('.doc-section, .glass-card').forEach(card => {{
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${{e.clientX - rect.left}}px`);
+        card.style.setProperty('--mouse-y', `${{e.clientY - rect.top}}px`);
+      }});
     }});
 
     const raycaster = new THREE.Raycaster();
@@ -1186,53 +1573,119 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
       }}
     }}
 
+    // WebGL Wave Pulse Trigger on API execution
+    window.triggerWavePulse = function() {{
+      waveUniforms.uActivity.value = 1.0;
+      waveUniforms.uWaveHeight.value = waveHeight * 1.5;
+      setTimeout(() => {{
+        waveUniforms.uWaveHeight.value = waveHeight * (1 + scrollCurrent * scrollRise);
+      }}, 600);
+    }};
+
     // -------------------------------------------------------------
-    // 8. MATTER.JS ZERO-GRAVITY INTERACTIVE PHYSICS BELT
+    // 8. MATTER.JS BOUNDED ARENA (UPRIGHT PILLS, INERTIA INFINITY)
     // -------------------------------------------------------------
-    const {{ Engine, Bodies, Composite, Constraint, Body, Vector }} = Matter;
+    const {{ Engine, Bodies, Composite, Constraint, Body }} = Matter;
     const physicsEngine = Engine.create({{
       gravity: {{ x: 0, y: 0, scale: 0.001 }}
     }});
 
-    const tokenEls = Array.from(document.querySelectorAll('.physics-token'));
+    const arenaEl = document.getElementById('hero-physics-arena');
+    const tokenEls = Array.from(document.querySelectorAll('#hero-physics-arena .physics-token'));
     const tokenBodies = [];
-    const arenaW = window.innerWidth;
-    const spacing = arenaW / (tokenEls.length + 1);
 
-    tokenEls.forEach((el, i) => {{
-      const startX = spacing * (i + 1);
-      const startY = 35 + (i % 2 === 0 ? -12 : 12);
-      const body = Bodies.rectangle(startX, startY, 140, 36, {{
-        frictionAir: 0.04,
-        restitution: 0.8
-      }});
+    function setupPhysicsArena() {{
+      const arenaRect = arenaEl.getBoundingClientRect();
+      const w = arenaRect.width || 800;
+      const h = arenaRect.height || 160;
 
-      const anchor = Constraint.create({{
-        pointA: {{ x: startX, y: startY }},
-        bodyB: body,
-        stiffness: 0.018,
-        damping: 0.06
-      }});
+      // Clear previous bodies if any
+      Composite.clear(physicsEngine.world, false);
+      tokenBodies.length = 0;
 
-      Composite.add(physicsEngine.world, [body, anchor]);
-      tokenBodies.push({{ el, body, anchor, originX: startX, originY: startY }});
+      // Static boundary colliders (Enclosing Arena Walls)
+      const wallThickness = 40;
+      const topWall = Bodies.rectangle(w / 2, -wallThickness / 2, w + 200, wallThickness, {{ isStatic: true }});
+      const bottomFloor = Bodies.rectangle(w / 2, h + wallThickness / 2, w + 200, wallThickness, {{ isStatic: true }});
+      const leftWall = Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h + 200, {{ isStatic: true }});
+      const rightWall = Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h + 200, {{ isStatic: true }});
 
-      // Drag interaction
-      let isDragging = false;
-      el.addEventListener('mousedown', (e) => {{
-        isDragging = true;
-        el.style.cursor = 'grabbing';
+      Composite.add(physicsEngine.world, [topWall, bottomFloor, leftWall, rightWall]);
+
+      // Spacing pills inside arena
+      const count = tokenEls.length;
+      const spacingX = w / (count + 1);
+
+      tokenEls.forEach((el, i) => {{
+        const startX = spacingX * (i + 1);
+        const startY = h / 2 + (i % 2 === 0 ? -24 : 24);
+
+        // LOCK PILL ORIENTATION (inertia: Infinity, inverseInertia: 0)
+        const body = Bodies.rectangle(startX, startY, 150, 36, {{
+          inertia: Infinity,
+          inverseInertia: 0,
+          frictionAir: 0.035,
+          restitution: 0.75
+        }});
+
+        // Soft anchor constraint tethered to home base in arena
+        const anchor = Constraint.create({{
+          pointA: {{ x: startX, y: startY }},
+          bodyB: body,
+          stiffness: 0.015,
+          damping: 0.1
+        }});
+
+        Composite.add(physicsEngine.world, [body, anchor]);
+        tokenBodies.push({{ el, body, anchor, homeX: startX, homeY: startY }});
+
+        // Click and Drag handling
+        let isMouseDown = false;
+        let startClientX = 0;
+        let startClientY = 0;
+
+        el.addEventListener('mousedown', (e) => {{
+          isMouseDown = true;
+          startClientX = e.clientX;
+          startClientY = e.clientY;
+          el.style.cursor = 'grabbing';
+        }});
+
+        window.addEventListener('mouseup', (e) => {{
+          if (isMouseDown) {{
+            isMouseDown = false;
+            el.style.cursor = 'grab';
+            const distMoved = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
+            if (distMoved < 6) {{
+              // Click Action: trigger ripple pulse & scroll/inspect target
+              el.classList.add('ripple-pulse');
+              setTimeout(() => el.classList.remove('ripple-pulse'), 600);
+
+              const targetId = el.getAttribute('data-target');
+              if (targetId) {{
+                if (targetId.startsWith('api-')) {{
+                  openDrawerById(targetId);
+                }} else {{
+                  jumpSection(targetId);
+                }}
+              }}
+            }}
+          }}
+        }});
+
+        window.addEventListener('mousemove', (e) => {{
+          if (isMouseDown) {{
+            const arenaBox = arenaEl.getBoundingClientRect();
+            const relX = clamp(e.clientX - arenaBox.left, 40, arenaBox.width - 40);
+            const relY = clamp(e.clientY - arenaBox.top, 20, arenaBox.height - 20);
+            Body.setPosition(body, {{ x: relX, y: relY }});
+          }}
+        }});
       }});
-      window.addEventListener('mouseup', () => {{
-        isDragging = false;
-        el.style.cursor = 'grab';
-      }});
-      window.addEventListener('mousemove', (e) => {{
-        if (isDragging) {{
-          Body.setPosition(body, {{ x: e.clientX, y: e.clientY - 120 }});
-        }}
-      }});
-    }});
+    }}
+
+    setupPhysicsArena();
+    window.addEventListener('resize', setupPhysicsArena);
 
     // -------------------------------------------------------------
     // 9. ANIMATION LOOP & TELEMETRY HUD
@@ -1306,22 +1759,31 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
       crystalMesh.rotation.x -= 0.009;
       crystalMesh.rotation.y += 0.014;
 
-      // Update Matter.js Physics Belt
-      Engine.update(physicsEngine, dt * 1000);
-      const screenPointerX = (mouse.x * 0.5 + 0.5) * window.innerWidth;
-      const screenPointerY = (-mouse.y * 0.5 + 0.5) * 120;
+      // Update Matter.js Arena Pills (If not in docked focus mode)
+      if (!appState.focusMode) {{
+        Engine.update(physicsEngine, dt * 1000);
 
-      tokenBodies.forEach(({{ el, body }}) => {{
-        // Soft mouse repulsion
-        const dx = body.position.x - screenPointerX;
-        const dy = body.position.y - screenPointerY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 140 && dist > 1) {{
-          const force = (1.0 - dist / 140) * 0.0012;
-          Body.applyForce(body, body.position, {{ x: (dx / dist) * force, y: (dy / dist) * force }});
-        }}
-        el.style.transform = `translate3d(${{body.position.x - 70}}px, ${{body.position.y - 18}}px, 0px) rotate(${{body.angle}}rad)`;
-      }});
+        const arenaRect = arenaEl.getBoundingClientRect();
+        const cursorArenaX = (mouse.x * 0.5 + 0.5) * window.innerWidth - arenaRect.left;
+        const cursorArenaY = (-mouse.y * 0.5 + 0.5) * window.innerHeight - arenaRect.top;
+
+        tokenBodies.forEach(({{ el, body }}) => {{
+          // Enforce 100% Upright Orientation
+          body.angle = clamp(body.angle, -0.08, 0.08) * 0.85;
+          body.angularVelocity = 0;
+
+          // Soft cursor repulsion inside arena
+          const dx = body.position.x - cursorArenaX;
+          const dy = body.position.y - cursorArenaY;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 120 && dist > 1) {{
+            const force = (1.0 - dist / 120) * 0.001;
+            Body.applyForce(body, body.position, {{ x: (dx / dist) * force, y: (dy / dist) * force }});
+          }}
+
+          el.style.transform = `translate3d(${{body.position.x - 75}}px, ${{body.position.y - 18}}px, 0px) rotate(${{body.angle}}rad)`;
+        }});
+      }}
 
       // Update HUD
       hudScroll.textContent = `${{Math.round(scroll * 100)}}%`;
@@ -1367,6 +1829,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
       appState.focusMode = !appState.focusMode;
       document.body.classList.toggle('focus-mode', appState.focusMode);
       focusBtn.classList.toggle('active', appState.focusMode);
+      arenaEl.classList.toggle('docked', appState.focusMode);
 
       if (appState.focusMode) {{
         flow = 0.2;
@@ -1376,45 +1839,112 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
         flow = 1.0;
         waveUniforms.uBrightness.value = brightness;
         waveUniforms.uOpacity.value = opacity;
+        setupPhysicsArena();
       }}
     }});
   </script>
 
-  <!-- Interactive Probes, Command Palette & Swagger Loader -->
+  <!-- Interactive Drawers, Live API Requests, Command Palette & Swagger Loader -->
   <script>
-    // Live Probe Execution against FastAPI
-    async function runProbe(endpoint, outId) {{
-      const out = document.getElementById(outId);
-      out.textContent = "Connecting to " + endpoint + "...";
-      const start = performance.now();
-      try {{
-        const res = await fetch(endpoint);
-        const data = await res.json();
-        const latency = (performance.now() - start).toFixed(1);
-        out.textContent = `[HTTP ${{res.status}} OK — ${{latency}}ms]\n` + JSON.stringify(data, null, 2);
-      }} catch (err) {{
-        out.textContent = "[PROBE ERROR]: " + err.message;
+    // Expandable Drawer Toggle
+    function toggleDrawer(headerEl) {{
+      const rowItem = headerEl.closest('.api-row-item');
+      rowItem.classList.toggle('open');
+    }}
+
+    function openDrawerById(id) {{
+      const target = document.getElementById(id);
+      if (target) {{
+        target.classList.add('open');
+        target.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
       }}
+    }}
+
+    // Real-Time API Execution
+    async function executeLiveRequest(method, endpoint, bodyJson, outId) {{
+      const out = document.getElementById(outId);
+      out.textContent = `Connecting to ${{endpoint}}...`;
+
+      // Trigger WebGL wave swell feedback
+      if (window.triggerWavePulse) window.triggerWavePulse();
+
+      const startTime = performance.now();
+      try {{
+        const options = {{
+          method: method,
+          headers: {{ 'Content-Type': 'application/json' }}
+        }};
+        if (bodyJson && method !== 'GET') {{
+          options.body = typeof bodyJson === 'string' ? bodyJson : JSON.stringify(bodyJson);
+        }}
+
+        const res = await fetch(endpoint, options);
+        const data = await res.json();
+        const latency = (performance.now() - startTime).toFixed(1);
+
+        const statusTag = res.ok ? `[HTTP ${{res.status}} OK — ${{latency}}ms]` : `[HTTP ${{res.status}} ERROR — ${{latency}}ms]`;
+        out.textContent = `${{statusTag}}\n\n` + JSON.stringify(data, null, 2);
+        showToast(`Request complete (${{latency}}ms)`);
+      }} catch (err) {{
+        out.textContent = `[NETWORK / SERVER ERROR]: ${{err.message}}`;
+        showToast('Request failed: ' + err.message);
+      }}
+    }}
+
+    // Toast and Copy Helpers
+    function showToast(msg) {{
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2400);
     }}
 
     function copySnippet(id) {{
       const text = document.getElementById(id).innerText;
       navigator.clipboard.writeText(text);
-      alert("Code copied to clipboard!");
+      showToast("Snippet copied to clipboard");
+    }}
+
+    function copySnippetFromAttr(btn) {{
+      const txt = btn.getAttribute('data-snippet');
+      if (txt) {{
+        navigator.clipboard.writeText(txt);
+        showToast("Code copied to clipboard");
+      }}
+    }}
+
+    function copySnippetText(txt) {{
+      navigator.clipboard.writeText(txt);
+      showToast("Code copied to clipboard");
     }}
 
     // Command Palette Logic
     const palette = document.getElementById('cmd-palette');
     const paletteSearch = document.getElementById('palette-search');
     const openBtn = document.getElementById('open-cmd');
+    const paletteList = document.getElementById('palette-list');
 
     function togglePalette() {{
       palette.classList.toggle('open');
       if (palette.classList.contains('open')) {{
         paletteSearch.focus();
         paletteSearch.value = '';
+        filterPalette('');
       }}
     }}
+
+    function filterPalette(query) {{
+      const items = Array.from(paletteList.querySelectorAll('.palette-item'));
+      const q = query.toLowerCase();
+      items.forEach(it => {{
+        const text = it.textContent.toLowerCase();
+        it.style.display = text.includes(q) ? 'flex' : 'none';
+      }});
+    }}
+
+    paletteSearch.addEventListener('input', (e) => {{
+      filterPalette(e.target.value);
+    }});
 
     openBtn.addEventListener('click', togglePalette);
     window.addEventListener('keydown', (e) => {{
@@ -1431,7 +1961,7 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     }});
 
     function jumpSection(id) {{
-      togglePalette();
+      if (palette.classList.contains('open')) togglePalette();
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({{ behavior: 'smooth' }});
     }}
