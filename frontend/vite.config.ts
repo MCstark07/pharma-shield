@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-<<<<<<< HEAD
   server: {
     port: 5173,
     host: true,
@@ -17,14 +16,6 @@ export default defineConfig({
         ws: true,
       }
     }
-=======
-  resolve: {
-    preserveSymlinks: true
-  },
-  server: {
-    port: 5173,
-    host: true
->>>>>>> ba3b8f0d9b43c398a687806f4638ea935ada9bf5
   }
 });
 
