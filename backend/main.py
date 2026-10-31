@@ -12,6 +12,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -19,6 +20,7 @@ import uvicorn
 
 from backend.app.core.config import settings
 from backend.app.core.database import Base, engine, get_db
+from backend.app.core.docs_ui import get_custom_docs_html
 from backend.app.api.routes import router as api_router
 from backend.app.api.v1 import (
     auth,
@@ -39,7 +41,8 @@ except Exception as e:
 app = FastAPI(
     title="PharmaShield Central Real-Time Bus & Cryptographic Ledger",
     version=settings.VERSION,
-    description="Central real-time logistics engine connecting Doctor, Pharma Ops, and Cyber Lab portals."
+    description="Central real-time logistics engine connecting Doctor, Pharma Ops, and Cyber Lab portals.",
+    docs_url=None,  # Custom 3D Three.js & Matter.js docs mounted below
 )
 
 # CORS Middleware allowing all portal origins (5173, 5174, 5175, etc.)
@@ -103,6 +106,14 @@ def health_endpoint(db: Session = Depends(get_db)):
         "port": 8000,
         "zone": "Bhagalpur, Bihar"
     }
+
+@app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
+def custom_docs():
+    """Custom futuristic dark-mode API Docs featuring Three.js 3D Bio-Vial & Matter.js physics."""
+    return get_custom_docs_html(
+        title="PharmaShield Cyber-Logistics | 3D Interactive API Studio",
+        openapi_url="/openapi.json"
+    )
 
 @app.get("/")
 def root():
