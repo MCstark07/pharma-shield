@@ -63,31 +63,68 @@
       pointer-events: auto;
     }
 
-    /* Fixed Bottom Scroll Hint */
+    /* Smart Floating Scroll/Top Pill Button */
     #scroll-hint {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      letter-spacing: 0.25em;
+      font-weight: 700;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: #7affbf;
-      opacity: 0.85;
-      z-index: 50;
-      pointer-events: none;
-      animation: pulseHint 2.4s infinite ease-in-out;
-      background: rgba(2, 22, 12, 0.7);
-      padding: 6px 18px;
+      background: rgba(2, 22, 12, 0.92);
+      border: 1px solid rgba(52, 232, 154, 0.45);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(52, 232, 154, 0.2);
+      backdrop-filter: blur(14px);
+      padding: 9px 22px;
       border-radius: 9999px;
-      border: 1px solid rgba(122, 255, 191, 0.3);
-      backdrop-filter: blur(10px);
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      z-index: 9999 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      outline: none;
+    }
+
+    #scroll-hint:hover {
+      border-color: #34e89a;
+      color: #ffffff;
+      background: rgba(4, 30, 16, 0.98);
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.85), 0 0 25px rgba(10, 255, 127, 0.45);
+      transform: translate(-50%, -3px);
+    }
+
+    #scroll-hint:active {
+      transform: translate(-50%, 0) scale(0.96);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    #scroll-hint.is-top {
+      border-color: rgba(10, 255, 127, 0.7);
+      color: #0aff7f;
+      background: rgba(4, 32, 18, 0.95);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8), 0 0 20px rgba(10, 255, 127, 0.35);
+    }
+
+    #scroll-hint #scroll-hint-icon {
+      font-size: 13px;
+      font-weight: 900;
+      transition: transform 0.2s ease;
+    }
+
+    #scroll-hint.pulse-hint {
+      animation: pulseHint 2.4s infinite ease-in-out;
     }
 
     @keyframes pulseHint {
-      0%, 100% { opacity: 0.5; transform: translate(-50%, 0); }
-      50% { opacity: 1.0; transform: translate(-50%, 5px); }
+      0%, 100% { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(52, 232, 154, 0.2); }
+      50% { box-shadow: 0 4px 30px rgba(0, 0, 0, 0.9), 0 0 26px rgba(10, 255, 127, 0.45); }
     }
 
     /* Sticky Navigation Bar with Integrated HUD */
@@ -623,18 +660,76 @@
       transform: scale(1.02);
     }
 
-    .response-box {
+    .response-container {
       margin-top: 14px;
       background: #000000;
       border: 1px solid rgba(52, 232, 154, 0.2);
-      border-radius: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .response-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: rgba(4, 22, 14, 0.7);
+      border-bottom: 1px solid rgba(52, 232, 154, 0.15);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .response-status-badge {
+      color: #7affbf;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .response-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-mini-btn {
+      background: rgba(10, 255, 127, 0.12);
+      border: 1px solid rgba(10, 255, 127, 0.3);
+      color: #0aff7f;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .pill-mini-btn:hover {
+      background: #0aff7f;
+      color: #02160c;
+    }
+
+    .response-box {
+      background: transparent;
+      border: none;
       padding: 14px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       color: #34e89a;
       max-height: 240px;
       overflow-y: auto;
+      overscroll-behavior: contain; /* Prevents nested scroll trapping */
       white-space: pre-wrap;
+      transition: max-height 0.25s ease, opacity 0.2s;
+    }
+
+    .response-box.collapsed {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      overflow: hidden;
     }
 
     /* Toast Notification */
@@ -988,7 +1083,16 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
                     <span>⚡ Execute Request</span>
                   </button>
                 </div>
-                <div class="response-box" id="res-health">Click "Execute Request" above to test live endpoint...</div>
+                <div class="response-container">
+                  <div class="response-toolbar">
+                    <span class="response-status-badge" id="badge-health">READY</span>
+                    <div class="response-actions">
+                      <button class="pill-mini-btn" type="button" onclick="copyResponseText('res-health')">Copy JSON</button>
+                      <button class="pill-mini-btn" type="button" onclick="toggleCollapseResponse('res-health', this)">Collapse ▲</button>
+                    </div>
+                  </div>
+                  <pre class="response-box" id="res-health">Click "Execute Request" above to test live endpoint...</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -1020,7 +1124,16 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
                     <span>⚡ Execute Request</span>
                   </button>
                 </div>
-                <div class="response-box" id="res-inventory">Click "Execute Request" above to query inventory...</div>
+                <div class="response-container">
+                  <div class="response-toolbar">
+                    <span class="response-status-badge" id="badge-inventory">READY</span>
+                    <div class="response-actions">
+                      <button class="pill-mini-btn" type="button" onclick="copyResponseText('res-inventory')">Copy JSON</button>
+                      <button class="pill-mini-btn" type="button" onclick="toggleCollapseResponse('res-inventory', this)">Collapse ▲</button>
+                    </div>
+                  </div>
+                  <pre class="response-box" id="res-inventory">Click "Execute Request" above to query inventory...</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -1052,7 +1165,16 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
                     <span>⚡ Submit Emergency Request</span>
                   </button>
                 </div>
-                <div class="response-box" id="res-request">Click button above to submit payload...</div>
+                <div class="response-container">
+                  <div class="response-toolbar">
+                    <span class="response-status-badge" id="badge-request">READY</span>
+                    <div class="response-actions">
+                      <button class="pill-mini-btn" type="button" onclick="copyResponseText('res-request')">Copy JSON</button>
+                      <button class="pill-mini-btn" type="button" onclick="toggleCollapseResponse('res-request', this)">Collapse ▲</button>
+                    </div>
+                  </div>
+                  <pre class="response-box" id="res-request">Click button above to submit payload...</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -1084,7 +1206,16 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
                     <span>⚡ Send IoT Telemetry</span>
                   </button>
                 </div>
-                <div class="response-box" id="res-telemetry">Click button above to ingest sensor reading...</div>
+                <div class="response-container">
+                  <div class="response-toolbar">
+                    <span class="response-status-badge" id="badge-telemetry">READY</span>
+                    <div class="response-actions">
+                      <button class="pill-mini-btn" type="button" onclick="copyResponseText('res-telemetry')">Copy JSON</button>
+                      <button class="pill-mini-btn" type="button" onclick="toggleCollapseResponse('res-telemetry', this)">Collapse ▲</button>
+                    </div>
+                  </div>
+                  <pre class="response-box" id="res-telemetry">Click button above to ingest sensor reading...</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -1113,7 +1244,16 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
                     <span>⚡ Inspect Ledger</span>
                   </button>
                 </div>
-                <div class="response-box" id="res-ledger">Click "Inspect Ledger" above to query audit chain...</div>
+                <div class="response-container">
+                  <div class="response-toolbar">
+                    <span class="response-status-badge" id="badge-ledger">READY</span>
+                    <div class="response-actions">
+                      <button class="pill-mini-btn" type="button" onclick="copyResponseText('res-ledger')">Copy JSON</button>
+                      <button class="pill-mini-btn" type="button" onclick="toggleCollapseResponse('res-ledger', this)">Collapse ▲</button>
+                    </div>
+                  </div>
+                  <pre class="response-box" id="res-ledger">Click "Inspect Ledger" above to query audit chain...</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -1132,8 +1272,11 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     </div>
   </div>
 
-  <!-- Bottom Scroll Hint -->
-  <div id="scroll-hint">SCROLL ↓</div>
+  <!-- Smart Floating Scroll / Top Button -->
+  <button id="scroll-hint" class="pulse-hint" type="button" aria-label="Navigate through sections">
+    <span id="scroll-hint-text">SCROLL</span>
+    <span id="scroll-hint-icon">↓</span>
+  </button>
 
   <!-- Toast Notification -->
   <div id="toast">Copied to clipboard</div>
@@ -1712,6 +1855,34 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
         appState.fpsLastTime = performance.now();
       }
 
+      // Continuous Scroll Sync across manual & programmatic smooth scrolls
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      scrollTarget = maxScroll > 0 ? clamp(window.scrollY / maxScroll, 0, 1) : 0;
+
+      // Update Scroll Hint Button (SCROLL ↓ vs TOP ↑)
+      const scrollBtnEl = document.getElementById('scroll-hint');
+      const scrollBtnTextEl = document.getElementById('scroll-hint-text');
+      const scrollBtnIconEl = document.getElementById('scroll-hint-icon');
+      if (scrollBtnEl && scrollBtnTextEl && scrollBtnIconEl) {
+        if (scrollTarget >= 0.85) {
+          if (!scrollBtnEl.classList.contains('is-top')) {
+            scrollBtnEl.classList.add('is-top');
+            scrollBtnEl.classList.remove('pulse-hint');
+            scrollBtnTextEl.textContent = 'TOP';
+            scrollBtnIconEl.textContent = '↑';
+            scrollBtnEl.setAttribute('title', 'Scroll back to top');
+          }
+        } else {
+          if (scrollBtnEl.classList.contains('is-top')) {
+            scrollBtnEl.classList.remove('is-top');
+            scrollBtnEl.classList.add('pulse-hint');
+            scrollBtnTextEl.textContent = 'SCROLL';
+            scrollBtnIconEl.textContent = '↓';
+            scrollBtnEl.setAttribute('title', 'Scroll to next section');
+          }
+        }
+      }
+
       // Damped Scroll & Pointer
       scrollSmooth = Lerp(scrollSmooth, scrollTarget, 0.08);
       scrollCurrent = Lerp(scrollCurrent, scrollSmooth, 0.1);
@@ -1856,7 +2027,17 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
     // Real-Time API Execution
     async function executeLiveRequest(method, endpoint, bodyJson, outId) {
       const out = document.getElementById(outId);
+      const badgeKey = outId.replace('res-', '');
+      const badge = document.getElementById('badge-' + badgeKey);
+
       out.textContent = `Connecting to ${endpoint}...`;
+      if (badge) {
+        badge.textContent = 'RUNNING...';
+        badge.style.color = '#38bdf8';
+      }
+
+      // Ensure response box is expanded
+      out.classList.remove('collapsed');
 
       // Trigger WebGL wave swell feedback
       if (window.triggerWavePulse) window.triggerWavePulse();
@@ -1879,11 +2060,79 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
         out.textContent = `${statusTag}
 
 ` + JSON.stringify(data, null, 2);
+
+        if (badge) {
+          badge.textContent = res.ok ? `${res.status} OK (${latency}ms)` : `${res.status} ERROR (${latency}ms)`;
+          badge.style.color = res.ok ? '#0aff7f' : '#f43f5e';
+        }
+
         showToast(`Request complete (${latency}ms)`);
       } catch (err) {
         out.textContent = `[NETWORK / SERVER ERROR]: ${err.message}`;
+        if (badge) {
+          badge.textContent = 'FAILED';
+          badge.style.color = '#f43f5e';
+        }
         showToast('Request failed: ' + err.message);
       }
+    }
+
+    // Response Box Collapse & Copy Handlers
+    function copyResponseText(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        navigator.clipboard.writeText(el.innerText);
+        showToast("JSON response copied to clipboard");
+      }
+    }
+
+    function toggleCollapseResponse(id, btn) {
+      const el = document.getElementById(id);
+      if (el) {
+        const isCollapsed = el.classList.toggle('collapsed');
+        btn.textContent = isCollapsed ? 'Expand ▼' : 'Collapse ▲';
+      }
+    }
+
+    // Smart Section-by-Section Smooth Scrolling
+    const scrollBtn = document.getElementById('scroll-hint');
+    const SECTIONS = ['quickstart', 'contracts', 'cryptography', 'api-explorer', 'swagger-wrapper'];
+
+    function handleScrollButtonClick(e) {
+      if (e) e.preventDefault();
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const currentRatio = maxScroll > 0 ? (window.scrollY / maxScroll) : 0;
+
+      // If near bottom (>= 85%), scroll smoothly back to top
+      if (currentRatio >= 0.85) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Find next section whose top is > 90px below current viewport top
+      let target = null;
+      for (const id of SECTIONS) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top > 90) {
+            target = el;
+            break;
+          }
+        }
+      }
+
+      if (target) {
+        const yOffset = -76; // header compensation
+        const y = target.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      } else {
+        window.scrollBy({ top: window.innerHeight * 0.75, behavior: 'smooth' });
+      }
+    }
+
+    if (scrollBtn) {
+      scrollBtn.addEventListener('click', handleScrollButtonClick);
     }
 
     // Toast and Copy Helpers
