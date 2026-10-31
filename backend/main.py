@@ -1,9 +1,19 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import sys
+import os
+
+# Ensure project root is always in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 import uvicorn
 
 from backend.app.core.config import settings
-from backend.app.core.database import Base, engine
+from backend.app.core.database import Base, engine, get_db
 from backend.app.websockets import manager
 from backend.app.api.v1 import (
     auth,
@@ -50,14 +60,25 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+# Multi-alias Health Check Endpoints (covers /health, /api/health, /api/v1/health)
 @app.get("/health")
-def health_endpoint():
-    """Health check endpoint requested by specification."""
+@app.get("/api/health")
+@app.get(f"{settings.API_V1_STR}/health")
+def health_endpoint(db: Session = Depends(get_db)):
+    """Health check endpoint verifying server & active database connection."""
+    try:
+        db.execute(text("SELECT 1"))
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
     return {
         "status": "healthy",
         "system": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "database": "connected"
+        "database": db_status,
+        "crypto_standard": "Ed25519 / SHA-256",
+        "zone": "Bhagalpur, Bihar"
     }
 
 @app.get("/")
@@ -66,6 +87,8 @@ def root_endpoint():
         "status": "ONLINE",
         "system": settings.PROJECT_NAME,
         "version": settings.VERSION,
+        "health_check": "/health",
+        "docs_url": "/docs",
         "crypto_standard": "Ed25519 / SHA-256",
         "zone": "Bhagalpur, Bihar"
     }
