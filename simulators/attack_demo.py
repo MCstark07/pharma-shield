@@ -31,6 +31,7 @@ from backend.app.services.crypto import (
     canonical_bytes,
     compute_event_hash,
     generate_keypair,
+    private_key_from_hex,
     sign_hash,
     verify_signature,
 )
@@ -61,7 +62,8 @@ def run_attack_demonstration(tamper_key: str = "quantity", tamper_val: int = 200
 
     # Step 1: Identity & Keypair Initialization
     print(f"{Colors.BOLD}[STEP 1] Generating Organization Ed25519 Cryptographic Keys...{Colors.RESET}")
-    priv_key, priv_hex, pub_hex = generate_keypair()
+    priv_hex, pub_hex = generate_keypair()
+    priv_key = private_key_from_hex(priv_hex)
     org_id = "ORG-MAYAGANJ-CENTRAL-DEPOT"
     actor_id = "DISPATCHER-OFFICER-07"
 
