@@ -28,8 +28,9 @@ class UrgencyLevel(str, Enum):
 
 
 class RequisitionStatus(str, Enum):
-    REQUESTED = "REQUESTED"
-    AUTHORIZED = "AUTHORIZED"
+    PRESCRIPTION_PENDING = "PRESCRIPTION_PENDING"  # Patient submitted, awaiting doctor approval
+    REQUESTED = "REQUESTED"                        # Doctor approved, awaiting vendor dispatch
+    AUTHORIZED = "AUTHORIZED"                      # Vendor accepted & Ed25519 signed
     IN_TRANSIT = "IN_TRANSIT"
     DELIVERED = "DELIVERED"
     UNDER_REVIEW = "UNDER_REVIEW"
@@ -42,6 +43,27 @@ class AttackType(str, Enum):
     TEMPERATURE_BREACH = "TEMPERATURE_BREACH"
     BLOOD_INCOMPATIBILITY = "BLOOD_INCOMPATIBILITY"
     REPLAY_EXPIRED_BATCH = "REPLAY_EXPIRED_BATCH"
+    TELEMETRY_SPOOFING = "TELEMETRY_SPOOFING"
+    PRIVILEGE_ESCALATION = "PRIVILEGE_ESCALATION"
+    REPLAY_ATTACK = "REPLAY_ATTACK"
+
+
+class PatientPrescriptionCreate(BaseModel):
+    patient_id: str = "PT-2026-JLNMCH-04"
+    patient_name: str = "Rohit Kumar"
+    bed_number: str = "Bed #ICU-04"
+    facility_id: str = "FAC-JLNMCH-01"
+    category: ResourceCategory = ResourceCategory.BLOOD_COMPONENTS
+    resource_code: str = "O_POS_RBC"
+    quantity: int = Field(gt=0, default=10)
+    urgency: UrgencyLevel = UrgencyLevel.CRITICAL
+    patient_note: Optional[str] = "Severe acute blood loss trauma - Emergency O+ RBC transfusion needed"
+
+
+class DoctorApproveRequest(BaseModel):
+    doctor_name: str = "Dr. Ananya Sharma"
+    doctor_license: str = "LIC-BH-8842-TRAUMA"
+    clinical_notes: Optional[str] = "Clinically verified for emergency bedside infusion protocol"
 
 
 class MedicalRequisitionCreate(BaseModel):
@@ -51,6 +73,9 @@ class MedicalRequisitionCreate(BaseModel):
     quantity: int = Field(gt=0, default=10)
     urgency: UrgencyLevel = UrgencyLevel.CRITICAL
     clinical_note: Optional[str] = "Emergency Trauma ICU Transfusion - Protocol Active"
+    patient_id: Optional[str] = "PT-2026-JLNMCH-04"
+    patient_name: Optional[str] = "Rohit Kumar"
+    bed_number: Optional[str] = "Bed #ICU-04"
 
 
 class MedicalRequisition(BaseModel):
@@ -65,6 +90,13 @@ class MedicalRequisition(BaseModel):
     clinical_note: Optional[str] = None
     status: RequisitionStatus
     created_at: str
+    patient_id: Optional[str] = "PT-2026-JLNMCH-04"
+    patient_name: Optional[str] = "Rohit Kumar"
+    bed_number: Optional[str] = "Bed #ICU-04"
+    doctor_approved: Optional[bool] = False
+    prescribed_by: Optional[str] = None
+    prescribed_at: Optional[str] = None
+    doctor_license: Optional[str] = None
     authorized_at: Optional[str] = None
     authorized_by: Optional[str] = None
     supplying_facility_id: Optional[str] = None
@@ -78,8 +110,8 @@ class MedicalRequisition(BaseModel):
 
 class AuthorizeRequest(BaseModel):
     supplying_facility_id: str = "FAC-MAYAGANJ-01"
-    authorized_by: str = "Dr. R. K. Sharma (Chief Depot Pharmacist)"
-    batch_id: Optional[str] = "BATCH-2026-MAYAGANJ-881"
+    authorized_by: str = "Dr. R. K. Sinha (Chief Medical Logistics Officer)"
+    batch_id: Optional[str] = "BATCH-2026-MAYAGANJ-ALPHA"
 
 
 class AttackPayload(BaseModel):
@@ -88,32 +120,30 @@ class AttackPayload(BaseModel):
     tampered_quantity: Optional[int] = 500
     forged_signature_hex: Optional[str] = None
     excursion_temperature_celsius: Optional[float] = 14.8
+    spoofed_telemetry_celsius: Optional[float] = 14.8
+    claimed_role: Optional[str] = "CHIEF_AUTHORITY_SIGNER"
+    replay_nonce: Optional[str] = "0x88921BCA"
     target_facility_id: Optional[str] = "FAC-MAYAGANJ-01"
 
 
 class AttackResponse(BaseModel):
-    success: bool  # True if defense successfully intercepted attack
+    success: bool
     attack_type: AttackType
     status: str
     alert_title: str
     alert_details: str
     cryptographic_proof: Dict[str, Any]
-    timestamp_utc: str
-
-
-class WebSocketMessage(BaseModel):
-    event_type: str  # REQUISITION_CREATED, REQUISITION_AUTHORIZED, SECURITY_ALERT, TELEMETRY_UPDATE, STOCK_UPDATED
-    timestamp: str
-    data: Dict[str, Any]
+    timestamp_utc: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class Facility(BaseModel):
     id: str
     name: str
-    facility_type: str  # HOSPITAL, BLOOD_BANK, CLINIC, DEPOT
+    facility_type: str
     latitude: float
     longitude: float
-    reliability: float
+    city: str = "Bhagalpur"
+    reliability: float = 95.0
 
 
 class InventoryStock(BaseModel):
@@ -127,5 +157,10 @@ class InventoryStock(BaseModel):
     min_threshold: int
     days_of_stock: float
     storage_temp_celsius: float
-    is_critical: bool
+    is_critical: bool = False
 
+
+class WebSocketMessage(BaseModel):
+    event_type: str
+    timestamp: str
+    data: Dict[str, Any]

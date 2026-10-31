@@ -34,7 +34,7 @@ class ConnectionManager:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
         }
-        raw_message = json.dumps(payload)
+        raw_message = json.dumps(payload, default=str)
         dead_connections: List[WebSocket] = []
 
         for connection in list(self.active_connections):
@@ -48,7 +48,7 @@ class ConnectionManager:
             self.disconnect(dead)
 
     async def send_personal_message(self, message: Dict[str, Any], websocket: WebSocket) -> None:
-        raw_message = json.dumps(message)
+        raw_message = json.dumps(message, default=str)
         await websocket.send_text(raw_message)
 
 

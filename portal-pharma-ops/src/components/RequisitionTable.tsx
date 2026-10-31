@@ -22,6 +22,13 @@ export interface MedicalRequisition {
   urgency: string;
   clinical_note?: string;
   status: string;
+  patient_id?: string;
+  patient_name?: string;
+  bed_number?: string;
+  doctor_approved?: boolean;
+  prescribed_by?: string;
+  doctor_license?: string;
+  prescribed_at?: string;
   created_at: string;
   authorized_at?: string;
   authorized_by?: string;

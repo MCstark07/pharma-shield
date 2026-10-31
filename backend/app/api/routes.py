@@ -16,10 +16,12 @@ from backend.app.schemas.contracts import (
     AttackResponse,
     AttackType,
     AuthorizeRequest,
+    DoctorApproveRequest,
     Facility,
     InventoryStock,
     MedicalRequisition,
     MedicalRequisitionCreate,
+    PatientPrescriptionCreate,
     RequisitionStatus,
     ResourceCategory,
     UrgencyLevel,
@@ -102,7 +104,7 @@ INVENTORY: List[InventoryStock] = [
         resource_code="O_POS_RBC",
         name="Packed Red Blood Cells (O+)",
         quantity=4,
-        min_threshold=10,
+        min_threshold=8,
         days_of_stock=0.8,
         storage_temp_celsius=4.2,
         is_critical=True,
@@ -111,22 +113,22 @@ INVENTORY: List[InventoryStock] = [
         id="INV-003",
         facility_id="FAC-MAYAGANJ-01",
         facility_name="Mayaganj Central Depot",
-        category=ResourceCategory.VACCINES,
-        resource_code="COVAXIN_VACCINE",
-        name="Covaxin Multidose Vials",
-        quantity=120,
-        min_threshold=30,
-        days_of_stock=12.0,
-        storage_temp_celsius=4.5,
+        category=ResourceCategory.BLOOD_COMPONENTS,
+        resource_code="A_POS_RBC",
+        name="Packed Red Blood Cells (A+)",
+        quantity=40,
+        min_threshold=10,
+        days_of_stock=5.0,
+        storage_temp_celsius=4.0,
         is_critical=False,
     ),
     InventoryStock(
         id="INV-004",
-        facility_id="FAC-MAYAGANJ-01",
-        facility_name="Mayaganj Central Depot",
-        category=ResourceCategory.EMERGENCY_SUPPLIES,
-        resource_code="TRAUMA_KIT",
-        name="Level-1 Tactical Trauma Kit",
+        facility_id="FAC-SADAR-01",
+        facility_name="Sadar Hospital Bhagalpur",
+        category=ResourceCategory.BLOOD_COMPONENTS,
+        resource_code="O_POS_RBC",
+        name="Packed Red Blood Cells (O+)",
         quantity=25,
         min_threshold=5,
         days_of_stock=8.3,
@@ -172,8 +174,12 @@ def init_seed_requisitions():
             resource_code="O_POS_RBC",
             quantity=10,
             urgency=UrgencyLevel.CRITICAL,
-            clinical_note="ICU Emergency Transfusion - Hemorrhagic Shock Protocol",
-            status=RequisitionStatus.REQUESTED,
+            clinical_note="ICU Emergency Transfusion - Severe Hemorrhagic Shock",
+            status=RequisitionStatus.PRESCRIPTION_PENDING,
+            patient_id="PT-2026-JLNMCH-04",
+            patient_name="Rohit Kumar",
+            bed_number="Bed #ICU-04",
+            doctor_approved=False,
             created_at=datetime.now(timezone.utc).isoformat(),
             temperature_celsius=4.2,
         )
@@ -221,6 +227,67 @@ def get_requisitions():
     return reqs
 
 
+@router.post("/patient/prescription", response_model=MedicalRequisition)
+async def create_patient_prescription(payload: PatientPrescriptionCreate):
+    """
+    Step 1: Patient submits an emergency prescription / supply request.
+    Status starts as PRESCRIPTION_PENDING.
+    Broadcasts PRESCRIPTION_REQUESTED over WebSocket to Doctor portal.
+    """
+    req_id = f"REQ-2026-{uuid.uuid4().hex[:6].upper()}"
+    new_req = MedicalRequisition(
+        id=req_id,
+        requesting_facility_id=payload.facility_id,
+        category=payload.category,
+        resource_code=payload.resource_code,
+        quantity=payload.quantity,
+        urgency=payload.urgency,
+        clinical_note=payload.patient_note,
+        status=RequisitionStatus.PRESCRIPTION_PENDING,
+        patient_id=payload.patient_id,
+        patient_name=payload.patient_name,
+        bed_number=payload.bed_number,
+        doctor_approved=False,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        temperature_celsius=4.2,
+    )
+    REQUISITIONS[req_id] = new_req
+
+    # Broadcast to Doctor on Port 5173
+    await event_bus.broadcast("PRESCRIPTION_REQUESTED", new_req.model_dump())
+
+    return new_req
+
+
+@router.post("/doctor/prescriptions/{req_id}/approve", response_model=MedicalRequisition)
+async def approve_prescription(req_id: str, payload: DoctorApproveRequest):
+    """
+    Step 2: Doctor reviews and approves the patient's prescription with medical license.
+    Transitions status to REQUESTED (now an active hospital requisition).
+    Broadcasts DOCTOR_PRESCRIPTION_APPROVED and REQUISITION_CREATED to Vendor on Port 5174.
+    """
+    if req_id not in REQUISITIONS:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    req = REQUISITIONS[req_id]
+    now_utc = datetime.now(timezone.utc).isoformat()
+    req.status = RequisitionStatus.REQUESTED
+    req.doctor_approved = True
+    req.prescribed_by = payload.doctor_name
+    req.doctor_license = payload.doctor_license
+    req.prescribed_at = now_utc
+    if payload.clinical_notes:
+        req.clinical_note = f"{req.clinical_note or ''} [Physician Note: {payload.clinical_notes}]".strip()
+
+    REQUISITIONS[req_id] = req
+
+    # Real-time WebSocket Broadcast: Alert Vendor on Port 5174
+    await event_bus.broadcast("DOCTOR_PRESCRIPTION_APPROVED", req.model_dump())
+    await event_bus.broadcast("REQUISITION_CREATED", req.model_dump())
+
+    return req
+
+
 @router.post("/requisitions", response_model=MedicalRequisition)
 async def create_requisition(payload: MedicalRequisitionCreate):
     """
@@ -237,6 +304,11 @@ async def create_requisition(payload: MedicalRequisitionCreate):
         urgency=payload.urgency,
         clinical_note=payload.clinical_note,
         status=RequisitionStatus.REQUESTED,
+        patient_id=payload.patient_id or "PT-2026-JLNMCH-04",
+        patient_name=payload.patient_name or "Rohit Kumar",
+        bed_number=payload.bed_number or "Bed #ICU-04",
+        doctor_approved=True,
+        prescribed_by="Dr. Ananya Sharma",
         created_at=datetime.now(timezone.utc).isoformat(),
         temperature_celsius=4.0,
     )
@@ -251,9 +323,9 @@ async def create_requisition(payload: MedicalRequisitionCreate):
 @router.post("/requisitions/{req_id}/authorize", response_model=MedicalRequisition)
 async def authorize_requisition(req_id: str, payload: AuthorizeRequest):
     """
-    Authorizes an order from Pharma Ops Hub:
+    Step 3: Authorizes an order from Pharma Ops Hub (Vendor Approval):
     Applies Ed25519 digital signature and SHA-256 canonical hash chaining.
-    Broadcasts REQUISITION_AUTHORIZED to Doctor and Cyber Lab portals.
+    Broadcasts REQUISITION_AUTHORIZED to Doctor, Patient, and Cyber Lab portals.
     """
     if req_id not in REQUISITIONS:
         raise HTTPException(status_code=404, detail="Requisition not found")
@@ -404,8 +476,8 @@ async def simulate_attack(payload: AttackPayload):
             timestamp_utc=now_utc,
         )
 
-    elif payload.attack_type == AttackType.TEMPERATURE_BREACH:
-        temp_c = payload.excursion_temperature_celsius or 14.8
+    elif payload.attack_type == AttackType.TEMPERATURE_BREACH or payload.attack_type == AttackType.TELEMETRY_SPOOFING:
+        temp_c = payload.excursion_temperature_celsius or payload.spoofed_telemetry_celsius or 14.8
         req.temperature_celsius = temp_c
         req.status = RequisitionStatus.UNDER_REVIEW
         REQUISITIONS[target_id] = req
@@ -459,7 +531,7 @@ async def simulate_attack(payload: AttackPayload):
             timestamp_utc=now_utc,
         )
 
-    elif payload.attack_type == AttackType.REPLAY_EXPIRED_BATCH:
+    elif payload.attack_type == AttackType.REPLAY_EXPIRED_BATCH or payload.attack_type == AttackType.REPLAY_ATTACK:
         req.status = RequisitionStatus.TAMPER_REJECTED
         REQUISITIONS[target_id] = req
 
@@ -506,4 +578,3 @@ def get_audit_ledger():
         "records": global_ledger.get_records(),
         "audit_verification": audit_log,
     }
-
