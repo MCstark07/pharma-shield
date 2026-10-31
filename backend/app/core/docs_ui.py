@@ -90,7 +90,7 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       border-radius: 9999px;
       cursor: pointer !important;
       pointer-events: auto !important;
-      z-index: 9999 !important;
+      z-index: 8500 !important;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -808,11 +808,267 @@ def get_custom_docs_html(title: str = "PharmaShield Cyber-Logistics | 3D Interac
       overflow: hidden;
     }}
 
-    .swagger-ui {{
+    .swagger-ui > :not(.dialog-ux) {{
       filter: invert(88%) hue-rotate(180deg) contrast(110%);
     }}
     .swagger-ui .topbar {{ display: none !important; }}
     .swagger-ui .info {{ margin: 10px 0 !important; }}
+
+    /* -------------------------------------------------------------
+       SWAGGER UI AUTHENTICATION MODAL (CYBER-EMERALD GLASS REDESIGN)
+       ------------------------------------------------------------- */
+    .swagger-ui .dialog-ux {{
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 10000 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }}
+
+    .swagger-ui .dialog-ux .backdrop-ux {{
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 10000 !important;
+      background: rgba(1, 10, 6, 0.82) !important;
+      backdrop-filter: blur(14px) saturate(140%) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux {{
+      position: fixed !important;
+      top: 52% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 10001 !important;
+      max-height: calc(100vh - 110px) !important;
+      width: min(560px, 92vw) !important;
+      margin: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      background: linear-gradient(165deg, rgba(4, 28, 16, 0.98) 0%, rgba(2, 14, 8, 0.99) 100%) !important;
+      border: 1px solid rgba(52, 232, 154, 0.38) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9), 0 0 40px rgba(52, 232, 154, 0.15), inset 0 1px 0 rgba(122, 255, 191, 0.2) !important;
+      overflow: hidden !important;
+      color: #eafff5 !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header {{
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 18px 24px !important;
+      border-bottom: 1px solid rgba(52, 232, 154, 0.18) !important;
+      background: rgba(52, 232, 154, 0.06) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header h3 {{
+      margin: 0 !important;
+      font-size: 1.1rem !important;
+      font-weight: 700 !important;
+      color: #eafff5 !important;
+      letter-spacing: 0.02em !important;
+      font-family: 'Inter', sans-serif !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header .close-modal {{
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 8px !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      padding: 0 !important;
+      transition: all 0.2s !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header .close-modal svg {{
+      fill: #aef0c0 !important;
+      stroke: #aef0c0 !important;
+      width: 14px !important;
+      height: 14px !important;
+      transition: fill 0.2s !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header .close-modal:hover {{
+      background: rgba(255, 82, 82, 0.2) !important;
+      border-color: rgba(255, 82, 82, 0.4) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-header .close-modal:hover svg {{
+      fill: #ff6b6b !important;
+      stroke: #ff6b6b !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content {{
+      padding: 20px 24px !important;
+      overflow-y: auto !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: rgba(52, 232, 154, 0.3) transparent !important;
+      color: #cbd5e1 !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content::-webkit-scrollbar {{
+      width: 6px !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content::-webkit-scrollbar-thumb {{
+      background: rgba(52, 232, 154, 0.3) !important;
+      border-radius: 999px !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content h4 {{
+      color: #7affbf !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      margin: 12px 0 6px !important;
+      font-family: 'JetBrains Mono', monospace !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content p {{
+      color: #94a3b8 !important;
+      font-size: 12px !important;
+      margin: 4px 0 12px !important;
+      line-height: 1.5 !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content code {{
+      background: rgba(52, 232, 154, 0.1) !important;
+      color: #7affbf !important;
+      padding: 2px 6px !important;
+      border-radius: 4px !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 11px !important;
+      border: 1px solid rgba(52, 232, 154, 0.22) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content label {{
+      display: block !important;
+      font-size: 11px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      color: #8ecfb0 !important;
+      margin-bottom: 6px !important;
+      font-weight: 600 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content input[type="text"],
+    .swagger-ui .dialog-ux .modal-ux-content input[type="password"],
+    .swagger-ui .dialog-ux .modal-ux-content select {{
+      width: 100% !important;
+      box-sizing: border-box !important;
+      background: rgba(1, 12, 7, 0.85) !important;
+      border: 1px solid rgba(52, 232, 154, 0.25) !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      color: #eafff5 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 13px !important;
+      outline: none !important;
+      transition: all 0.2s !important;
+      margin-bottom: 12px !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content input[type="text"]:focus,
+    .swagger-ui .dialog-ux .modal-ux-content input[type="password"]:focus,
+    .swagger-ui .dialog-ux .modal-ux-content select:focus {{
+      border-color: #34e89a !important;
+      box-shadow: 0 0 0 3px rgba(52, 232, 154, 0.22) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content .auth-btn-wrapper {{
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 12px !important;
+      margin-top: 16px !important;
+      padding-top: 16px !important;
+      border-top: 1px solid rgba(52, 232, 154, 0.15) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content .btn.modal-btn.auth.authorize {{
+      background: linear-gradient(135deg, #34e89a 0%, #0aff7f 100%) !important;
+      color: #02160c !important;
+      font-weight: 700 !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 24px !important;
+      box-shadow: 0 4px 18px rgba(52, 232, 154, 0.35) !important;
+      cursor: pointer !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 12px !important;
+      transition: all 0.2s !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content .btn.modal-btn.auth.authorize:hover {{
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 24px rgba(52, 232, 154, 0.55) !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content .btn.modal-btn.auth.btn-done {{
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: #aef0c0 !important;
+      border: 1px solid rgba(52, 232, 154, 0.25) !important;
+      border-radius: 8px !important;
+      padding: 10px 20px !important;
+      cursor: pointer !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 12px !important;
+      transition: all 0.2s !important;
+    }}
+
+    .swagger-ui .dialog-ux .modal-ux-content .btn.modal-btn.auth.btn-done:hover {{
+      background: rgba(52, 232, 154, 0.12) !important;
+      border-color: #34e89a !important;
+    }}
+
+    /* Demo Quick-Fill Chips inside Modal */
+    .demo-role-quickfill {{
+      margin-bottom: 16px !important;
+      padding: 12px 14px !important;
+      background: rgba(52, 232, 154, 0.08) !important;
+      border: 1px dashed rgba(52, 232, 154, 0.3) !important;
+      border-radius: 10px !important;
+    }}
+
+    .demo-chip-btn {{
+      background: rgba(10, 255, 127, 0.12) !important;
+      border: 1px solid rgba(10, 255, 127, 0.35) !important;
+      color: #7affbf !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      padding: 5px 12px !important;
+      border-radius: 9999px !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+    }}
+
+    .demo-chip-btn:hover {{
+      background: #0aff7f !important;
+      color: #02160c !important;
+      box-shadow: 0 0 15px rgba(10, 255, 127, 0.5) !important;
+      transform: translateY(-1px) !important;
+    }}
+
+    /* Auto-hide #scroll-hint when modal is open */
+    body.swagger-modal-open #scroll-hint,
+    body:has(.dialog-ux) #scroll-hint {{
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translate(-50%, 20px) !important;
+    }}
 
     /* Command Palette Modal */
     #cmd-palette {{
@@ -2233,6 +2489,70 @@ Signature_i = Ed25519_Sign( PrivateKey_Org, H_i )</code></pre>
           theme: 'monokai'
         }}
       }});
+
+      // MutationObserver for Swagger Auth Modal Styling & Quick-Fill Chips
+      const authObserver = new MutationObserver(() => {{
+        const dialog = document.querySelector('.swagger-ui .dialog-ux');
+        const content = document.querySelector('.swagger-ui .dialog-ux .modal-ux-content');
+
+        if (dialog) {{
+          document.body.classList.add('swagger-modal-open');
+        }} else {{
+          document.body.classList.remove('swagger-modal-open');
+        }}
+
+        if (content && !content.querySelector('.demo-role-quickfill')) {{
+          const quickfill = document.createElement('div');
+          quickfill.className = 'demo-role-quickfill';
+          quickfill.innerHTML = `
+            <div style="font-size: 11px; font-weight: 700; color: #7affbf; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>⚡</span> QUICK-FILL DEMO CREDENTIALS:
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <button type="button" class="demo-chip-btn" data-user="admin@pharmashield.gov.in" data-pass="admin123">⚡ Admin / Dispatcher</button>
+              <button type="button" class="demo-chip-btn" data-user="jlnmch@bhagalpur.gov.in" data-pass="hospital123">🏥 Hospital Node</button>
+              <button type="button" class="demo-chip-btn" data-user="operator@mayaganj.gov.in" data-pass="operator123">🚚 Cold-Chain Operator</button>
+            </div>
+          `;
+          content.insertBefore(quickfill, content.firstChild);
+
+          quickfill.querySelectorAll('.demo-chip-btn').forEach(btn => {{
+            btn.addEventListener('click', (e) => {{
+              e.preventDefault();
+              const userInp = content.querySelector('input[name="username"]') || content.querySelector('input[type="text"]');
+              const passInp = content.querySelector('input[name="password"]') || content.querySelector('input[type="password"]');
+
+              if (userInp) {{
+                userInp.value = btn.getAttribute('data-user');
+                userInp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                userInp.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                userInp.style.borderColor = '#0aff7f';
+                userInp.style.boxShadow = '0 0 15px rgba(10, 255, 127, 0.4)';
+                setTimeout(() => {{
+                  userInp.style.borderColor = '';
+                  userInp.style.boxShadow = '';
+                }}, 800);
+              }}
+
+              if (passInp) {{
+                passInp.value = btn.getAttribute('data-pass');
+                passInp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                passInp.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                passInp.style.borderColor = '#0aff7f';
+                passInp.style.boxShadow = '0 0 15px rgba(10, 255, 127, 0.4)';
+                setTimeout(() => {{
+                  passInp.style.borderColor = '';
+                  passInp.style.boxShadow = '';
+                }}, 800);
+              }}
+
+              showToast("Populated demo credentials for " + btn.textContent.trim());
+            }});
+          }});
+        }}
+      }});
+
+      authObserver.observe(document.body, {{ childList: true, subtree: true }});
     }});
   </script>
 
