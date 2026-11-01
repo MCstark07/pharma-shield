@@ -21,8 +21,12 @@ import {
   Wifi,
   Sparkles,
   ArrowRight,
+  ExternalLink,
   Filter,
-  Check
+  Check,
+  Building2,
+  Stethoscope,
+  Info
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import { TripartiteNav } from './components/TripartiteNav';
@@ -49,7 +53,7 @@ interface PatientUser {
 }
 
 export default function App() {
-  // 1. Patient Authentication State
+  // 1. Patient Authentication State (Pre-authenticated to Rohit Kumar)
   const [patient, setPatient] = useState<PatientUser | null>({
     patientId: 'PT-2026-JLNMCH-04',
     name: 'Rohit Kumar',
@@ -58,7 +62,7 @@ export default function App() {
     facilityId: 'fac_jlnmch',
   });
 
-  // Login form fields (for when user logs out or switches)
+  // Login form fields
   const [loginName, setLoginName] = useState('Rohit Kumar');
   const [loginBed, setLoginBed] = useState('ICU Bed #04');
   const [loginFacility, setLoginFacility] = useState('fac_jlnmch');
@@ -71,11 +75,11 @@ export default function App() {
 
   // 3. Selected Medicine Requisition State
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
-  const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [orderQuantity, setOrderQuantity] = useState<number>(5);
   const [urgency, setUrgency] = useState<'CRITICAL' | 'URGENT' | 'STANDARD'>('URGENT');
-  const [clinicalNote, setClinicalNote] = useState('');
+  const [clinicalNote, setClinicalNote] = useState('High fever and acute infection - emergency ICU bedside replenishment needed');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [successBanner, setSuccessBanner] = useState<{ id: string; message: string } | null>(null);
 
   // 4. Patient's Submitted Requests
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -135,10 +139,11 @@ export default function App() {
         setMyRequests((prev) =>
           prev.map((r) => (r.id === event.data.id ? { ...r, ...event.data, status: 'AUTHORIZED' } : r))
         );
-        setSuccessBanner(
-          `🎉 Great news! Your request #${event.data.id} was just APPROVED by the Vendor depot!`
-        );
-        setTimeout(() => setSuccessBanner(null), 10000);
+        setSuccessBanner({
+          id: event.data.id,
+          message: `🎉 Great news! Your request #${event.data.id} was just APPROVED by the Vendor Depot on Port 5174!`,
+        });
+        setTimeout(() => setSuccessBanner(null), 12000);
       }
     }
   }, []);
@@ -173,11 +178,10 @@ export default function App() {
       if (res.ok) {
         const created = await res.json();
         setMyRequests((prev) => [created, ...prev]);
-        setSuccessBanner(
-          `✓ Request #${created.id} submitted successfully! Transmitted to Vendor Operations on Port 5174 for approval.`
-        );
-        setClinicalNote('');
-        setTimeout(() => setSuccessBanner(null), 9000);
+        setSuccessBanner({
+          id: created.id,
+          message: `✓ Requisition #${created.id} submitted! Now visible in real-time on Vendor Portal (Port 5174).`,
+        });
       } else {
         alert('Failed to submit requisition. Please check backend server.');
       }
@@ -201,6 +205,16 @@ export default function App() {
       (item.brand && item.brand.toLowerCase().includes(query));
     return matchesCategory && matchesSearch;
   });
+
+  // Category counts
+  const categoryCounts = {
+    ALL: catalog.length,
+    MEDICINES: catalog.filter((i) => i.category === 'MEDICINES').length,
+    BLOOD_COMPONENTS: catalog.filter((i) => i.category === 'BLOOD_COMPONENTS').length,
+    VACCINES: catalog.filter((i) => i.category === 'VACCINES').length,
+    EMERGENCY_SUPPLIES: catalog.filter((i) => i.category === 'EMERGENCY_SUPPLIES').length,
+    MEDICAL_EQUIPMENT: catalog.filter((i) => i.category === 'MEDICAL_EQUIPMENT').length,
+  };
 
   // Login handler
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -295,7 +309,7 @@ export default function App() {
                   facilityId: 'fac_jlnmch',
                 });
               }}
-              className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg border border-slate-700 font-mono transition-colors"
+              className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg border border-slate-700 font-mono transition-colors cursor-pointer"
             >
               Quick Login as Rohit Kumar (ICU Bed #04)
             </button>
@@ -310,21 +324,59 @@ export default function App() {
       {/* Universal Tripartite Command Strip */}
       <TripartiteNav currentPortal="CLINICAL" isConnected={isConnected} />
 
+      {/* Cross-Portal Live Workflow Guidance Banner */}
+      <div className="bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 border-b border-cyan-500/40 px-6 py-2.5 text-xs font-mono flex flex-wrap items-center justify-between gap-3 text-cyan-200">
+        <div className="flex items-center space-x-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span>
+            <strong>STEP 1 OF 2:</strong> Select medicines from the list below and submit your request.
+          </span>
+          <span className="text-slate-400 hidden sm:inline">
+            → Then open Vendor Operations on Port 5174 to approve it!
+          </span>
+        </div>
+
+        <a
+          href="http://localhost:5174"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-1.5 px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/40 transition-colors font-bold"
+        >
+          <span>Open Vendor Portal (:5174)</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+
       {/* Real-time Notification Banner */}
       {successBanner && (
-        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-3.5 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
+        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-4 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-200">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span className="text-xs font-mono text-emerald-200 font-medium">
-              {successBanner}
-            </span>
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+            <div>
+              <span className="text-sm font-bold text-white block">
+                {successBanner.message}
+              </span>
+              <span className="text-xs text-emerald-300 font-mono">
+                Order ID: <strong className="text-white">#{successBanner.id}</strong> • Chained to WebSocket Event Bus
+              </span>
+            </div>
           </div>
-          <button
-            onClick={() => setSuccessBanner(null)}
-            className="text-xs px-2.5 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-center space-x-2 shrink-0">
+            <a
+              href="http://localhost:5174"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition-colors flex items-center space-x-1"
+            >
+              <span>Approve on Port 5174 →</span>
+            </a>
+            <button
+              onClick={() => setSuccessBanner(null)}
+              className="text-xs px-2.5 py-1.5 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -337,7 +389,7 @@ export default function App() {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="font-extrabold text-base tracking-tight text-white uppercase font-mono">
-                PharmaShield <span className="text-cyan-400">Patient Portal</span>
+                PharmaShield <span className="text-cyan-400">Patient & Hospital Supply</span>
               </h1>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
                 PORT 5173
@@ -357,6 +409,16 @@ export default function App() {
             </span>
           </div>
 
+          <a
+            href="http://localhost:5174"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors"
+          >
+            <span>Vendor Portal (:5174)</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+
           <button
             onClick={() => setPatient(null)}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
@@ -374,13 +436,13 @@ export default function App() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2">
-                <span>Browse & Select Medicines</span>
+                <span>Select Medicines from Catalog</span>
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                  {filteredCatalog.length} Available
+                  {filteredCatalog.length} Items Available
                 </span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Select required supplies below to create an emergency requisition for vendor dispatch.
+                Click on any medicine below to select it, adjust quantity, and submit an emergency request to the Vendor on Port 5174.
               </p>
             </div>
 
@@ -389,7 +451,7 @@ export default function App() {
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
                 type="text"
-                placeholder="Search by name, brand, or code..."
+                placeholder="Search name, generic, or brand..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-slate-500"
@@ -400,12 +462,12 @@ export default function App() {
           {/* Category Filter Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
             {[
-              { id: 'ALL', label: 'All Items' },
-              { id: 'MEDICINES', label: 'Medicines' },
-              { id: 'BLOOD_COMPONENTS', label: 'Blood Units (ABO)' },
-              { id: 'VACCINES', label: 'Vaccines (2-8°C)' },
-              { id: 'EMERGENCY_SUPPLIES', label: 'Emergency Supplies' },
-              { id: 'MEDICAL_EQUIPMENT', label: 'Equipment' },
+              { id: 'ALL', label: `All Items (${categoryCounts.ALL})` },
+              { id: 'MEDICINES', label: `Medicines (${categoryCounts.MEDICINES})` },
+              { id: 'BLOOD_COMPONENTS', label: `Blood Units (${categoryCounts.BLOOD_COMPONENTS})` },
+              { id: 'VACCINES', label: `Vaccines (${categoryCounts.VACCINES})` },
+              { id: 'EMERGENCY_SUPPLIES', label: `Emergency Supplies (${categoryCounts.EMERGENCY_SUPPLIES})` },
+              { id: 'MEDICAL_EQUIPMENT', label: `Equipment (${categoryCounts.MEDICAL_EQUIPMENT})` },
             ].map((cat) => (
               <button
                 key={cat.id}
@@ -440,16 +502,19 @@ export default function App() {
                 return (
                   <div
                     key={item.resource_code}
-                    onClick={() => setSelectedItem(item)}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setOrderQuantity(5);
+                    }}
                     className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                       isSelected
-                        ? 'bg-cyan-950/40 border-cyan-500 shadow-lg shadow-cyan-500/10'
+                        ? 'bg-cyan-950/40 border-cyan-500 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/50'
                         : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800/80 hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center space-x-3.5 min-w-0">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                           item.category === 'BLOOD_COMPONENTS'
                             ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                             : item.category === 'VACCINES'
@@ -461,6 +526,8 @@ export default function App() {
                           <Droplets className="w-5 h-5" />
                         ) : item.category === 'VACCINES' ? (
                           <Syringe className="w-5 h-5" />
+                        ) : item.category === 'EMERGENCY_SUPPLIES' ? (
+                          <Package className="w-5 h-5" />
                         ) : (
                           <Pill className="w-5 h-5" />
                         )}
@@ -476,14 +543,15 @@ export default function App() {
                           </span>
                         </div>
                         <div className="text-xs text-slate-400 flex items-center space-x-2 mt-0.5 font-mono">
-                          <span>{item.resource_code}</span>
-                          {item.brand && <span>• Brand: {item.brand}</span>}
-                          {item.min_temp !== undefined && (
-                            <span className="text-cyan-400">
-                              • Temp: {item.min_temp}°C–{item.max_temp}°C
-                            </span>
-                          )}
+                          <span className="text-cyan-400 font-bold">{item.resource_code}</span>
+                          {item.brand && <span>• {item.brand}</span>}
+                          {item.generic && <span className="hidden sm:inline">({item.generic})</span>}
                         </div>
+                        {item.min_temp !== undefined && (
+                          <div className="text-[10px] text-teal-300 mt-1 font-mono">
+                            ❄️ Safe Temp: {item.min_temp}°C – {item.max_temp}°C
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -491,13 +559,14 @@ export default function App() {
                       <div className="text-base font-extrabold text-cyan-300 font-mono">
                         ₹{item.reference_price_inr?.toFixed(2)}
                       </div>
-                      <div className="text-[11px] font-mono text-emerald-400">
+                      <div className="text-[11px] font-mono text-emerald-400 font-bold">
                         {item.total_available_units} in Stock
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedItem(item);
+                          setOrderQuantity(5);
                         }}
                         className={`mt-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
                           isSelected
@@ -505,7 +574,7 @@ export default function App() {
                             : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
                         }`}
                       >
-                        {isSelected ? '✓ Selected' : 'Select'}
+                        {isSelected ? '✓ Selected' : '+ Select'}
                       </button>
                     </div>
                   </div>
@@ -524,7 +593,7 @@ export default function App() {
                     <span>Create Supply Requisition</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Submits directly to Vendor Depot on Port 5174 for approval.
+                    Orders are instantly pushed to Vendor Queue on Port 5174.
                   </p>
                 </div>
               </div>
@@ -532,27 +601,29 @@ export default function App() {
               {selectedItem ? (
                 <form onSubmit={handleSubmitRequest} className="space-y-4 text-xs font-mono">
                   {/* Selected Medicine Summary Card */}
-                  <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/50 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-cyan-400 font-bold uppercase">
-                        TARGET RESOURCE
+                      <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider">
+                        SELECTED SUPPLY ITEM
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold">
                         {selectedItem.category}
                       </span>
                     </div>
                     <div className="text-sm font-bold text-white font-sans">
                       {selectedItem.name}
                     </div>
-                    <div className="flex justify-between text-slate-300">
-                      <span>Unit Price: ₹{selectedItem.reference_price_inr}</span>
+                    <div className="flex justify-between text-slate-300 text-xs">
+                      <span>Unit Price: <strong>₹{selectedItem.reference_price_inr}</strong></span>
                       <span>Pack: {selectedItem.pack_size}</span>
                     </div>
                   </div>
 
                   {/* Quantity Counter */}
                   <div>
-                    <label className="text-slate-400 block mb-1.5">REQUISITION QUANTITY (UNITS)</label>
+                    <label className="text-slate-400 block mb-1.5 font-bold">
+                      REQUISITION QUANTITY (UNITS)
+                    </label>
                     <div className="flex items-center space-x-3">
                       <button
                         type="button"
@@ -572,21 +643,21 @@ export default function App() {
                         <Plus className="w-4 h-4" />
                       </button>
                       <div className="text-right flex-1 text-slate-400">
-                        Estimated Total: <strong className="text-cyan-300 font-bold text-sm">₹{(orderQuantity * selectedItem.reference_price_inr).toFixed(2)}</strong>
+                        Total: <strong className="text-cyan-300 font-bold text-base">₹{(orderQuantity * selectedItem.reference_price_inr).toFixed(2)}</strong>
                       </div>
                     </div>
                   </div>
 
                   {/* Urgency Level */}
                   <div>
-                    <label className="text-slate-400 block mb-1.5">CLINICAL URGENCY LEVEL</label>
+                    <label className="text-slate-400 block mb-1.5 font-bold">CLINICAL URGENCY LEVEL</label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['STANDARD', 'URGENT', 'CRITICAL'] as const).map((lvl) => (
                         <button
                           key={lvl}
                           type="button"
                           onClick={() => setUrgency(lvl)}
-                          className={`py-2 rounded-xl text-center font-bold text-[10px] transition-all cursor-pointer ${
+                          className={`py-2.5 rounded-xl text-center font-bold text-[10px] transition-all cursor-pointer ${
                             urgency === lvl
                               ? lvl === 'CRITICAL'
                                 ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
@@ -602,14 +673,26 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Patient Info Summary */}
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-slate-300 text-[11px] space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Destination:</span>
+                      <span className="text-white font-bold">{patient.facility}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Patient:</span>
+                      <span className="text-white">{patient.name} ({patient.bedNumber})</span>
+                    </div>
+                  </div>
+
                   {/* Clinical Justification Note */}
                   <div>
-                    <label className="text-slate-400 block mb-1.5">PATIENT / CLINICAL JUSTIFICATION</label>
+                    <label className="text-slate-400 block mb-1.5 font-bold">CLINICAL JUSTIFICATION NOTE</label>
                     <textarea
                       rows={2}
                       value={clinicalNote}
                       onChange={(e) => setClinicalNote(e.target.value)}
-                      placeholder={`e.g. Urgent prescription for ${patient.name} (${patient.bedNumber})`}
+                      placeholder="e.g. Urgent post-op bedside replenishment"
                       className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500 font-sans"
                     />
                   </div>
@@ -618,7 +701,7 @@ export default function App() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-4 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                   >
                     <Send className="w-4 h-4" />
                     <span>{isSubmitting ? 'Transmitting Request...' : 'Send Request to Vendor Depot (:5174)'}</span>
@@ -635,23 +718,33 @@ export default function App() {
 
         {/* Section 3: Live Requisition Status Tracker (Real-Time Updates from Port 5174) */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-base font-bold text-white flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-cyan-400" />
                 <span>My Active Requisitions & Live Vendor Approval Tracker</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Watch status flip from <strong className="text-amber-400">PENDING</strong> to <strong className="text-emerald-400">APPROVED</strong> when the vendor confirms on Port 5174.
+                Status changes live when the vendor on Port 5174 approves your order.
               </p>
             </div>
-            <button
-              onClick={fetchRequisitions}
-              className="text-xs flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors font-mono cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh Status</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={fetchRequisitions}
+                className="text-xs flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors font-mono cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Status</span>
+              </button>
+              <a
+                href="http://localhost:5174"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors font-mono font-bold"
+              >
+                <span>Vendor Portal →</span>
+              </a>
+            </div>
           </div>
 
           {myRequests.length === 0 ? (
@@ -681,10 +774,10 @@ export default function App() {
                         </span>
                       </div>
                       <div className="text-xs text-slate-300">
-                        Resource: <strong className="text-cyan-300">{req.quantity} Units of {req.resource_code}</strong>
+                        Requested: <strong className="text-cyan-300 font-bold">{req.quantity} Units of {req.resource_code}</strong>
                         {req.patient_name && <span> • Patient: {req.patient_name} ({req.bed_number})</span>}
                       </div>
-                      <div className="text-[11px] text-slate-500 font-mono">
+                      <div className="text-[11px] text-slate-400 font-mono">
                         "{req.clinical_note}"
                       </div>
                     </div>
@@ -694,16 +787,22 @@ export default function App() {
                         <div className="space-y-1">
                           <span className="text-emerald-400 font-bold flex items-center space-x-1 justify-end">
                             <CheckCircle2 className="w-4 h-4" />
-                            <span>Authorized & Signed</span>
+                            <span>Authorized with Ed25519</span>
                           </span>
                           <span className="text-[10px] text-slate-400 block">
-                            Signer: {req.authorized_by || 'Mayaganj Central Depot'}
+                            Fulfilling Depot: {req.authorized_by || 'Mayaganj Central Depot'}
                           </span>
                         </div>
                       ) : (
-                        <div className="text-amber-400/90 text-xs">
-                          Waiting for vendor sign-off...
-                        </div>
+                        <a
+                          href="http://localhost:5174"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/50 font-bold transition-all"
+                        >
+                          <span>Approve on Port 5174</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </a>
                       )}
                     </div>
                   </div>

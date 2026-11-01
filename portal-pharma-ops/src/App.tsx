@@ -14,9 +14,16 @@ import {
   FileCheck2,
   Lock,
   ArrowRight,
+  ExternalLink,
   User,
   Truck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Package,
+  Pill,
+  Droplets,
+  Syringe,
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import { TripartiteNav } from './components/TripartiteNav';
@@ -61,7 +68,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'PENDING_APPROVALS' | 'APPROVED_HISTORY' | 'DEPOT_STOCK'>('PENDING_APPROVALS');
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [approvalToast, setApprovalToast] = useState<string | null>(null);
+  const [approvalToast, setApprovalToast] = useState<{ id: string; message: string } | null>(null);
 
   // Fetch initial requisitions & inventory from backend
   const fetchData = async () => {
@@ -102,10 +109,11 @@ export function App() {
     ) {
       if (event.data) {
         setRequisitions((prev) => [event.data, ...prev.filter((r) => r.id !== event.data.id)]);
-        setApprovalToast(
-          `🔔 New incoming request #${event.data.id} for ${event.data.quantity} units of ${event.data.resource_code} from Patient on Port 5173!`
-        );
-        setTimeout(() => setApprovalToast(null), 8000);
+        setApprovalToast({
+          id: event.data.id,
+          message: `🔔 New incoming request #${event.data.id} for ${event.data.quantity} units of ${event.data.resource_code} from Patient on Port 5173!`,
+        });
+        setTimeout(() => setApprovalToast(null), 10000);
       }
     } else if (event.event_type === 'REQUISITION_AUTHORIZED') {
       if (event.data) {
@@ -141,10 +149,11 @@ export function App() {
         setRequisitions((prev) =>
           prev.map((r) => (r.id === reqId ? { ...r, ...updated, status: 'AUTHORIZED' } : r))
         );
-        setApprovalToast(
-          `✓ Successfully APPROVED & SIGNED Request #${reqId}! Applied Ed25519 signature & broadcast to Patient on Port 5173.`
-        );
-        setTimeout(() => setApprovalToast(null), 8000);
+        setApprovalToast({
+          id: reqId,
+          message: `✓ Successfully APPROVED & SIGNED Request #${reqId}! Applied Ed25519 signature & broadcast to Patient on Port 5173.`,
+        });
+        setTimeout(() => setApprovalToast(null), 12000);
       } else {
         alert('Failed to authorize requisition.');
       }
@@ -202,21 +211,59 @@ export function App() {
       {/* Universal Tripartite Command Strip */}
       <TripartiteNav currentPortal="LOGISTICS" isConnected={isConnected} />
 
+      {/* Cross-Portal Live Workflow Guidance Banner */}
+      <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-b border-amber-500/40 px-6 py-2.5 text-xs font-mono flex flex-wrap items-center justify-between gap-3 text-amber-200">
+        <div className="flex items-center space-x-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span>
+            <strong>STEP 2 OF 2:</strong> Review patient requisitions submitted from Port 5173 and click Approve.
+          </span>
+          <span className="text-slate-400 hidden sm:inline">
+            → Patient on Port 5173 will immediately see the verified status flip!
+          </span>
+        </div>
+
+        <a
+          href="http://localhost:5173"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-1.5 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg border border-amber-500/40 transition-colors font-bold"
+        >
+          <span>Open Patient Portal (:5173)</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+
       {/* Real-time Approval Toast */}
       {approvalToast && (
-        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-3.5 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
+        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-4 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-200">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span className="text-xs font-mono text-emerald-200 font-medium">
-              {approvalToast}
-            </span>
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+            <div>
+              <span className="text-sm font-bold text-white block">
+                {approvalToast.message}
+              </span>
+              <span className="text-xs text-emerald-300 font-mono">
+                Requisition <strong className="text-white">#{approvalToast.id}</strong> signed with Ed25519 & broadcast to Patient
+              </span>
+            </div>
           </div>
-          <button
-            onClick={() => setApprovalToast(null)}
-            className="text-xs px-2.5 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-center space-x-2 shrink-0">
+            <a
+              href="http://localhost:5173"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition-colors flex items-center space-x-1"
+            >
+              <span>View in Patient Portal (:5173) →</span>
+            </a>
+            <button
+              onClick={() => setApprovalToast(null)}
+              className="text-xs px-2.5 py-1.5 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -248,6 +295,16 @@ export function App() {
               {isConnected ? 'LIVE WEBSOCKET SYNC' : 'OFFLINE'}
             </span>
           </div>
+
+          <a
+            href="http://localhost:5173"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors"
+          >
+            <span>Patient Portal (:5173)</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
 
           <button
             onClick={() => setCurrentVendor(null)}
@@ -333,24 +390,34 @@ export function App() {
         {/* TAB 1: PENDING APPROVALS QUEUE */}
         {activeTab === 'PENDING_APPROVALS' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center space-x-2">
                   <Activity className="w-5 h-5 text-amber-400" />
                   <span>Incoming Patient Requisitions Awaiting Vendor Approval</span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Click "Approve & Dispatch Order" to apply your Ed25519 digital signature and notify the patient on Port 5173.
+                  Click "✓ Approve & Dispatch Order" to apply your Ed25519 digital signature and notify the patient on Port 5173.
                 </p>
               </div>
 
-              <button
-                onClick={fetchData}
-                className="text-xs flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-colors font-mono cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Refresh Queue</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={fetchData}
+                  className="text-xs flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-colors font-mono cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Refresh Queue</span>
+                </button>
+                <a
+                  href="http://localhost:5173"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs flex items-center space-x-1.5 px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-xl border border-cyan-500/40 transition-colors font-mono font-bold"
+                >
+                  <span>Submit from Patient (:5173) ↗</span>
+                </a>
+              </div>
             </div>
 
             {isLoading ? (
@@ -358,10 +425,21 @@ export function App() {
                 Loading incoming requisitions...
               </div>
             ) : pendingRequests.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs font-mono bg-slate-900/40 rounded-3xl border border-slate-800 space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                <div className="text-sm font-bold text-white">All Clear! No Pending Requests</div>
-                <div>When a patient submits a request in Port 5173, it will appear here in real time.</div>
+              <div className="p-12 text-center text-slate-400 text-xs font-mono bg-slate-900/40 rounded-3xl border border-slate-800 space-y-3">
+                <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
+                <div className="text-base font-bold text-white">All Clear! No Pending Requests</div>
+                <p className="text-slate-400 max-w-md mx-auto">
+                  When a patient creates a medicine request in <strong>Port 5173</strong>, it will appear here in real time.
+                </p>
+                <a
+                  href="http://localhost:5173"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 font-bold rounded-xl text-xs shadow-md shadow-cyan-500/20"
+                >
+                  <span>Go to Patient Portal (Port 5173) to Create a Request</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
               </div>
             ) : (
               <div className="space-y-4">
