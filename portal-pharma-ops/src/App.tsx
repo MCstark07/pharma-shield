@@ -55,7 +55,7 @@ const VENDOR_PRESETS: VendorInfo[] = [
 ];
 
 export function App() {
-  const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(VENDOR_PRESETS[0]);
+  const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(null);
   const [requisitions, setRequisitions] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem('ps_requisitions');
@@ -215,7 +215,9 @@ export function App() {
   // Render Vendor Sign-in if logged out
   if (!currentVendor) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 font-sans">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+        <TripartiteNav currentPortal="LOGISTICS" isConnected={isConnected} />
+        <div className="flex-1 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-7 shadow-xl space-y-6">
           <div className="space-y-1.5 text-center">
             <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-1">
@@ -242,6 +244,7 @@ export function App() {
                 </div>
               </button>
             ))}
+          </div>
           </div>
         </div>
       </div>

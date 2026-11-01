@@ -37,13 +37,7 @@ interface PatientUser {
 
 export default function App() {
   // 1. Patient Profile State (Pre-authenticated to Rohit Kumar)
-  const [patient, setPatient] = useState<PatientUser | null>({
-    patientId: 'PT-2026-JLNMCH-04',
-    name: 'Rohit Kumar',
-    bedNumber: 'ICU Bed #04',
-    facility: 'JLNMCH Bhagalpur (Emergency Wing)',
-    facilityId: 'fac_jlnmch',
-  });
+  const [patient, setPatient] = useState<PatientUser | null>(null);
 
   // Login form fields
   const [loginName, setLoginName] = useState('Rohit Kumar');
@@ -256,7 +250,9 @@ export default function App() {
   // Render Login screen if logged out
   if (!patient) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+        <TripartiteNav currentPortal="CLINICAL" isConnected={isConnected} />
+        <div className="flex-1 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-7 shadow-xl space-y-6">
           <div className="space-y-1.5 text-center">
             <div className="inline-flex p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-1">
@@ -328,6 +324,7 @@ export default function App() {
             >
               Quick Demo: Continue as Rohit Kumar (ICU Bed #04)
             </button>
+          </div>
           </div>
         </div>
       </div>
