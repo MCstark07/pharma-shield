@@ -107,3 +107,4 @@ $$H_i = \text{SHA-256}(H_{i-1} \parallel \text{CanonicalBytes}(\text{Payload}_i)
 $$\text{Signature}_i = \text{Ed25519Sign}(\text{PrivateKey}_{\text{Authority}}, H_i)$$
 
 Tampering with any single parameter (e.g. quantity from 10 to 500) results in an instant SHA-256 hash avalanche, failing signature verification and deflecting the payload to quarantine.
+

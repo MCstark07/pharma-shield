@@ -373,3 +373,4 @@ The WebSocket bus broadcasts system-wide state changes across all connected port
 | `SENSOR_EXCURSION` | Temperature out of 2–8°C | `{"event": "SENSOR_EXCURSION", "shipment_id": "SHP-01", "temp": 11.4}` |
 | `LEDGER_BLOCK_ADDED` | New Ed25519 signed block | `{"event": "LEDGER_BLOCK_ADDED", "event_hash": "a4f8..."}` |
 | `ATTACK_DETECTED` | Tamper simulation triggered | `{"event": "ATTACK_DETECTED", "source_ip": "198.51.100.24"}` |
+

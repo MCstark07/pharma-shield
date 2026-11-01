@@ -303,3 +303,4 @@ ORDER BY distance_km ASC;
 ```
 
 In embedded SQLite mode, the platform utilizes the Haversine trigonometric formula implemented natively in Python (`backend/app/services/matching.py`), guaranteeing zero-dependency fallback without performance degradation.
+

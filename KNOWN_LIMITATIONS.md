@@ -76,3 +76,4 @@ The following elements use realistic, deterministic synthetic datasets to demons
 
 3. **Emergency Clinical Notes:**
    - Requisition justifications (e.g., "Massive trauma casualty arriving in ER. Immediate transfusion required") are pre-populated with synthetic clinical notes with full PII redaction to simulate HIPAA/DISHA compliance.
+

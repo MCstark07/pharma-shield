@@ -270,3 +270,4 @@ pg_restore -U pharmashield -d pharmashield_db -c -v "/var/backups/pharmashield/d
    - `new_public_key_hex`
    - `effective_timestamp_utc`
 3. Audit verifiers accept historical signatures verified against the public key active at the block's timestamp, preserving 100% audit durability.
+
