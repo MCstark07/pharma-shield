@@ -13,6 +13,7 @@
 | `backend/tests/test_api.py` | API Contracts & Requisitions | 6 | 6 | 0 | **PASS** |
 | `backend/tests/test_flow.py` | 5-Step End-to-End Clinical Flow | 5 | 5 | 0 | **PASS** |
 | `backend/tests/test_prompt1.py` | Multi-State Foundation & Rules | 12 | 12 | 0 | **PASS** |
+| `backend/tests/test_scenario_part17.py` | Part 17 15-Step End-to-End Success Scenario | 15 | 15 | 0 | **PASS** |
 | `portal-doctor-patient` | TypeScript & Vite Production Build | 36 modules | 36 | 0 | **PASS** |
 | `portal-pharma-ops` | TypeScript & Vite Production Build | 42 modules | 42 | 0 | **PASS** |
 | `portal-cyber-lab` | TypeScript & Vite Production Build | 38 modules | 38 | 0 | **PASS** |
@@ -79,6 +80,69 @@
 [PASS] Siliguri out-of-stock case study successfully routes to Kolkata with landed cost breakdown.
 ```
 
+### 2.4 Part 17 Final Definition of Success End-to-End Demonstration (`test_scenario_part17.py`)
+- **Execution Command:** `python backend/tests/test_scenario_part17.py`
+- **Output:**
+```
+================================================================================
+  PHARMASHIELD - PART 17 FINAL DEFINITION OF SUCCESS END-TO-END DEMO
+  Scenario: Healthcare Facility In Dire Need Sourcing Scarce Inter-State Stock
+================================================================================
+
+[STEP 1 & 2] Searching PharmaShield from Care Pharmacy Siliguri (fac_siliguri_pharmacy)...
+ -> Local Stock Available in Siliguri: False
+ -> Total Eligible Offers: 1
+
+[STEP 3, 4 & 5] Expanding search inter-state across West Bengal, Bihar, and Jharkhand...
+ -> Participating Provider Offers Found: 1
+ -> Top Recommended Provider: Mayaganj Blood Bank & Central Depot (Bhagalpur, Bihar)
+ -> Distance: 215.18 km | Scope: INTER_STATE
+ -> Landed Cost Formula Breakdown:
+    * Base Wholesale Price:   INR 2400.00
+    * Inter-State Transit:    INR 172.14
+    * Cold-Chain Surcharge:   INR 0.00
+    * Applicable Taxes (GST): INR 120.00
+    * TOTAL LANDED COST:      INR 2692.14
+ -> Estimated Arrival Time:   5.1 Hours
+ -> Stock Confidence Level:   CONFIRMED
+
+[STEP 6 & 7] Authorized Hospital Submits Emergency Requisition...
+ -> Requisition Registered: 8520bf5d-2464-41cc-a8cd-002899271f03 (Status: OPEN)
+
+[STEP 8, 9 & 10] Provider Confirms Order & Row-Level Inventory Lock Engaged...
+ -> Row-Level Lock Status: Stock safely reserved (with_for_update)
+ -> Allocation Status: CONFIRMED
+ -> Active Shipment Dispatch Conduit Created: c35eab67-4267-4687-9866-a0e2e9ac3653
+
+[STEP 11] Telemetry Stream Ingest Active (Normal 4.2C Cold-Chain Conditions)...
+ -> Ingest OK: Temp = 4.2C
+
+[STEP 12] Thermal Excursion Event Ingested (Ambient Spike to 11.8C)...
+ -> Telemetry Excursion Flag: True
+ -> Shipment Dynamic Status: UNDER_REVIEW
+
+[STEP 13] Human Clinical Pharmacist Performs Disposition Sign-off...
+ -> Disposition Action: CLEARED_WITH_OVERRIDE
+ -> Cleared Shipment Status: DELIVERED
+ -> Tamper-Evident Disposition Hash: 19c8604efb8930b22df04163...
+
+[STEP 14 & 15] Verifying Cryptographic Audit Ledger & Operational Intelligence...
+ -> Total Cryptographic Blocks in Immutable Hash-Chain: 6
+ -> Latest Event Type: DISPATCHED
+ -> Cryptographic Ed25519 Signature: Validated (True)
+ -> Canonical Block Hash: a0ab464bfa81695b3d02ea536299c811...
+
+[*] Querying AI Regional Predictive Stock Rebalancing...
+ -> Active Regional Rebalancing Actions Recommended: 1
+    * Shortage Facility: Jawaharlal Nehru Medical College & Hospital (JLNMCH) (DOS: 0.8d)
+      Surplus Facility:  Mayaganj Blood Bank & Central Depot (DOS: 12.5d)
+      Recommended Transfer: 15 units O_POS_RBC
+
+================================================================================
+  [SUCCESS] PART 17 15-STEP END-TO-END DEMONSTRATION VERIFIED 100%!
+================================================================================
+```
+
 ---
 
 ## 3. Frontend Production Build Verification
@@ -121,3 +185,4 @@ All three portals were compiled using strict TypeScript (`tsc`) and Vite product
 | **Blood Safety Exclusion** | A+ blood offered for B- patient | Hard disqualification | Disqualified before ranking | **PASS** |
 | **Cold-Chain Lockdown** | Sensor temperature = 11.4°C (>8.0°C) | Status $\rightarrow$ `UNDER_REVIEW` | Locked; requires clinical sign-off | **PASS** |
 | **Concurrent Stock Race** | Concurrent requisitions on limited stock | Row-level locking serializes deductions | Zero negative stock | **PASS** |
+
