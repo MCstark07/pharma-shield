@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
+  Navigation,
   Search,
   Pill,
   Droplets,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import { TripartiteNav } from './components/TripartiteNav';
+import { Live3DTransitMap } from './components/Live3DTransitMap';
 import { DEFAULT_EXAMPLE_MEDICINES, CatalogItem } from './types/exampleData';
 
 interface PatientUser {
@@ -56,6 +58,8 @@ export default function App() {
   const [urgency, setUrgency] = useState<'CRITICAL' | 'URGENT' | 'STANDARD'>('URGENT');
   const [clinicalNote, setClinicalNote] = useState('Emergency bedside replenishment for acute clinical indication');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [is3DMapOpen, setIs3DMapOpen] = useState<boolean>(true);
+  const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [notification, setNotification] = useState<{ id: string; message: string; type: 'success' | 'info' } | null>(null);
 
   // 4. Patient's Submitted Requisitions (Starts clean with zero fake examples)
@@ -203,6 +207,8 @@ export default function App() {
     } catch {}
 
     setSelectedItem(null);
+    setTrackedOrder(createdRecord);
+    setIs3DMapOpen(true);
     setIsSubmitting(false);
     setNotification({
       id: createdRecord.id,
@@ -345,6 +351,17 @@ export default function App() {
         </div>
 
         <div className="flex items-center space-x-3 text-xs">
+          <button
+            onClick={() => setIs3DMapOpen(!is3DMapOpen)}
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+              is3DMapOpen
+                ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                : 'bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800'
+            }`}
+          >
+            <Navigation className="w-3 h-3 text-blue-400" />
+            <span>{is3DMapOpen ? 'Hide 3D Transit Map' : 'View 3D Transit Map'}</span>
+          </button>
           <span className="text-slate-500 hidden sm:inline">Linked Facility:</span>
           <span className="text-slate-300 font-medium">{patient.facility}</span>
           <a
@@ -377,6 +394,29 @@ export default function App() {
 
       {/* Main Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+        {/* Live 3D Transit Map & Package Tracking Window */}
+        {is3DMapOpen && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center space-x-2">
+                <Navigation className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  3D True-to-Life Route & Package Transit Tracking
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 font-mono border border-blue-500/20">
+                  {trackedOrder?.id || (myRequests.length > 0 ? myRequests[0].id : 'Active Bhagalpur Corridor')}
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                Drag to rotate 3D angle • Scroll to zoom • Follow Courier cam
+              </span>
+            </div>
+            <Live3DTransitMap
+              activeOrder={trackedOrder || (myRequests.length > 0 ? myRequests[0] : null)}
+              onClose={() => setIs3DMapOpen(false)}
+            />
+          </div>
+        )}
         {/* Patient Identity & Search Bar */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -700,6 +740,7 @@ export default function App() {
                     <th className="pb-2">PRIORITY</th>
                     <th className="pb-2">DEPOT STATUS</th>
                     <th className="pb-2">AUDIT VERIFICATION</th>
+                    <th className="pb-2 text-right">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -748,6 +789,19 @@ export default function App() {
                         ) : (
                           <span className="text-slate-500">Pending Review on Port 5174</span>
                         )}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <button
+                          onClick={() => {
+                            setTrackedOrder(req);
+                            setIs3DMapOpen(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 text-[11px] font-medium transition-colors inline-flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          <span>Track in 3D</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
