@@ -412,7 +412,7 @@ export default function App() {
               </span>
             </div>
             <Live3DTransitMap
-              activeOrder={trackedOrder || (myRequests.length > 0 ? myRequests[0] : null)}
+              activeOrder={trackedOrder || myRequests.find((r) => r.status === 'AUTHORIZED') || (myRequests.length > 0 ? myRequests[0] : null)}
               onClose={() => setIs3DMapOpen(false)}
             />
           </div>
@@ -791,17 +791,30 @@ export default function App() {
                         )}
                       </td>
                       <td className="py-2.5 text-right">
-                        <button
-                          onClick={() => {
-                            setTrackedOrder(req);
-                            setIs3DMapOpen(true);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="px-2.5 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 text-[11px] font-medium transition-colors inline-flex items-center space-x-1 cursor-pointer"
-                        >
-                          <Navigation className="w-3 h-3" />
-                          <span>Track in 3D</span>
-                        </button>
+                        {req.status === 'AUTHORIZED' ? (
+                          <button
+                            onClick={() => {
+                              setTrackedOrder(req);
+                              setIs3DMapOpen(true);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-2.5 py-1 rounded bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition-colors inline-flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                          >
+                            <Navigation className="w-3 h-3 text-emerald-400" />
+                            <span>Track in 3D Map →</span>
+                          </button>
+                        ) : (
+                          <a
+                            href="http://localhost:5174"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 text-[11px] font-medium transition-colors inline-flex items-center space-x-1"
+                            title="Tracking unlocks once confirmed on Port 5174"
+                          >
+                            <Clock className="w-3 h-3 text-amber-400" />
+                            <span>Awaiting Confirmation (:5174)</span>
+                          </a>
+                        )}
                       </td>
                     </tr>
                   ))}

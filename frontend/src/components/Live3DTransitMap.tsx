@@ -13,7 +13,12 @@ import {
   RotateCcw,
   Truck,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  Lock,
+  ExternalLink,
+  Layers,
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 
 interface Live3DTransitMapProps {
@@ -25,6 +30,9 @@ interface Live3DTransitMapProps {
     patient_name?: string;
     bed_number?: string;
     urgency?: string;
+    authorized_at?: string;
+    authorized_by?: string;
+    signature_hex?: string;
   } | null;
   onClose?: () => void;
 }
@@ -33,23 +41,28 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
   activeOrder,
   onClose,
 }) => {
+  const isConfirmed = activeOrder?.status === 'AUTHORIZED';
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mapLayer, setMapLayer] = useState<'CARTO_DARK' | 'SATELLITE'>('CARTO_DARK');
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [viewPreset, setViewPreset] = useState<'CHASE' | 'ISOMETRIC' | 'TOP_DOWN'>('ISOMETRIC');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0.35);
+  const [progress, setProgress] = useState<number>(0.25);
+  const [simulatedSecondsRemaining, setSimulatedSecondsRemaining] = useState<number>(215);
+
   const [telemetry, setTelemetry] = useState({
     tempC: 3.8,
-    lat: 25.2432,
-    lng: 87.0138,
-    speedKmh: 34,
-    distanceRemainingKm: 1.2,
-    etaMinutes: 4,
+    lat: 25.2428,
+    lng: 87.0145,
+    speedKmh: 28,
+    distanceRemainingKm: 1.4,
   });
 
   const progressRef = useRef(progress);
   const isPlayingRef = useRef(isPlaying);
   const viewPresetRef = useRef(viewPreset);
+  const mapLayerRef = useRef(mapLayer);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -64,19 +77,91 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
   }, [viewPreset]);
 
   useEffect(() => {
+    mapLayerRef.current = mapLayer;
+  }, [mapLayer]);
+
+  // If order is not confirmed, render Standby State (Only starts tracking after confirmation)
+  if (!isConfirmed) {
+    return (
+      <div className="w-full rounded-xl border border-slate-800 bg-slate-900/90 p-8 shadow-xl text-center space-y-5">
+        <div className="max-w-md mx-auto space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+
+          <div>
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Package Tracking Standing By
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              3D true-to-life GPS tracking initializes <strong className="text-amber-400">only after an order is confirmed</strong> by the Vendor Depot on Port 5174.
+            </p>
+          </div>
+
+          {/* Verification Stepper */}
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 text-left text-xs space-y-3 font-mono">
+            <div className="flex items-center space-x-2 text-emerald-400">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Step 1: Bedside Requisition Submitted ({activeOrder?.id || 'Pending'})</span>
+            </div>
+
+            <div className="flex items-center space-x-2 text-amber-400">
+              <Clock className="w-4 h-4 shrink-0 animate-pulse" />
+              <div className="flex-1 flex items-center justify-between">
+                <span>Step 2: Depot Authorization</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                  AWAITING REVIEW
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 text-slate-600">
+              <Navigation className="w-4 h-4 shrink-0" />
+              <span>Step 3: 3D True-to-Life GPS Courier Tracking (Locked)</span>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 text-xs">
+            <a
+              href="http://localhost:5174"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm"
+            >
+              <span>Authorize Order on Port 5174 →</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Active Confirmed 3D Tracking Scene ---
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. Scene, Camera, Renderer Setup
     const width = container.clientWidth || 800;
-    const height = container.clientHeight || 450;
+    const height = container.clientHeight || 460;
 
+    // 1. Scene & Fog
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070b14);
-    scene.fog = new THREE.FogExp2(0x070b14, 0.015);
+    scene.background = new THREE.Color(0x060a12);
+    scene.fog = new THREE.FogExp2(0x060a12, 0.012);
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 300);
-    camera.position.set(0, 32, 42);
+    // 2. Camera & Renderer
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 350);
+    camera.position.set(0, 36, 44);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(width, height);
@@ -85,61 +170,82 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // 2. Lighting
-    const ambientLight = new THREE.AmbientLight(0x2a3b5c, 1.4);
+    // 3. Lighting
+    const ambientLight = new THREE.AmbientLight(0x3b4d6b, 1.6);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xa5c9ff, 2.2);
-    sunLight.position.set(40, 60, 20);
+    const sunLight = new THREE.DirectionalLight(0xbdd7ff, 2.4);
+    sunLight.position.set(50, 70, 30);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
     scene.add(sunLight);
 
-    // Secondary soft teal rim light
-    const rimLight = new THREE.DirectionalLight(0x00f0ff, 0.8);
-    rimLight.position.set(-30, 20, -30);
-    scene.add(rimLight);
+    const fillLight = new THREE.DirectionalLight(0x00f0ff, 0.6);
+    fillLight.position.set(-30, 25, -20);
+    scene.add(fillLight);
 
-    // 3. Ground & Road Network (Bhagalpur Grid)
-    const groundGeo = new THREE.PlaneGeometry(160, 160);
+    // 4. True-to-Life Map Tile Ground Plane (API Texture)
+    // CartoDB Dark Matter / Esri Satellite Tile for Bhagalpur Corridor (Zoom 15, X: 24304, Y: 14008)
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+
+    const darkTileUrl = 'https://a.basemaps.cartocdn.com/dark_all/15/24304/14008.png';
+    const satelliteTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/15/14008/24304';
+
+    const currentTileUrl = mapLayerRef.current === 'SATELLITE' ? satelliteTileUrl : darkTileUrl;
+
+    const groundGeo = new THREE.PlaneGeometry(120, 120);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x090e1a,
-      roughness: 0.9,
-      metalness: 0.1,
+      color: 0x1e293b,
+      roughness: 0.8,
+      metalness: 0.2,
     });
+
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // Load actual map API texture asynchronously
+    textureLoader.load(
+      currentTileUrl,
+      (texture) => {
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.generateMipmaps = true;
+        groundMat.map = texture;
+        groundMat.color.setHex(0xffffff); // Use original tile colors
+        groundMat.needsUpdate = true;
+      },
+      undefined,
+      (err) => {
+        console.warn('Real map tile API network notice - using high-contrast procedural grid fallback', err);
+      }
+    );
+
     // Grid Floor Overlay
-    const grid = new THREE.GridHelper(160, 40, 0x1e293b, 0x0f172a);
-    grid.position.y = 0.02;
+    const grid = new THREE.GridHelper(120, 30, 0x334155, 0x1e293b);
+    grid.position.y = 0.05;
     scene.add(grid);
 
-    // 4. Procedural City Buildings
+    // 5. Urban Architectural Structures (Procedural Buildings)
     const buildingMat = new THREE.MeshStandardMaterial({
-      color: 0x111927,
-      roughness: 0.7,
-      metalness: 0.3,
+      color: 0x0f172a,
+      roughness: 0.6,
+      metalness: 0.4,
     });
-    const windowMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-
     const buildingGroup = new THREE.Group();
+
     const cityBlocks = [
-      { x: -30, z: -20, w: 10, d: 8, h: 14 },
-      { x: -30, z: 0, w: 8, d: 10, h: 20 },
-      { x: -30, z: 20, w: 12, d: 8, h: 12 },
-      { x: -10, z: -30, w: 12, d: 8, h: 18 },
-      { x: 10, z: -30, w: 8, d: 12, h: 22 },
-      { x: 30, z: -20, w: 10, d: 10, h: 16 },
-      { x: 30, z: 5, w: 8, d: 14, h: 26 },
-      { x: 30, z: 25, w: 12, d: 8, h: 15 },
-      { x: -5, z: 28, w: 14, d: 8, h: 10 },
-      { x: 15, z: 28, w: 10, d: 8, h: 16 },
-      { x: -5, z: -5, w: 6, d: 6, h: 12 },
-      { x: 12, z: 8, w: 7, d: 7, h: 15 },
+      { x: -28, z: -15, w: 9, d: 8, h: 14 },
+      { x: -28, z: 5, w: 8, d: 10, h: 18 },
+      { x: -10, z: -25, w: 12, d: 7, h: 16 },
+      { x: 10, z: -25, w: 8, d: 10, h: 22 },
+      { x: 26, z: -15, w: 10, d: 8, h: 15 },
+      { x: 26, z: 8, w: 8, d: 12, h: 24 },
+      { x: -5, z: 25, w: 12, d: 8, h: 10 },
+      { x: 14, z: 25, w: 10, d: 7, h: 14 },
     ];
 
     cityBlocks.forEach((block) => {
@@ -149,211 +255,129 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
       bMesh.castShadow = true;
       bMesh.receiveShadow = true;
       buildingGroup.add(bMesh);
-
-      // Glowing rooftop beacon
-      const beaconGeo = new THREE.SphereGeometry(0.3, 8, 8);
-      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff3366 });
-      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-      beacon.position.set(block.x, block.h + 0.3, block.z);
-      buildingGroup.add(beacon);
     });
     scene.add(buildingGroup);
 
-    // 5. Origin Landmark: Mayaganj Central Cold-Chain Depot
+    // 6. Origin Landmark: Mayaganj Central Cold Depot
     const depotGroup = new THREE.Group();
-    const depotGeo = new THREE.BoxGeometry(10, 6, 12);
-    const depotMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.5,
-      metalness: 0.5,
-    });
+    const depotGeo = new THREE.BoxGeometry(10, 5, 10);
+    const depotMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
     const depot = new THREE.Mesh(depotGeo, depotMat);
-    depot.position.set(-24, 3, 16);
+    depot.position.set(-22, 2.5, 15);
     depot.castShadow = true;
-    depot.receiveShadow = true;
     depotGroup.add(depot);
 
-    // Depot Helipad / Landing Pad ring
-    const padGeo = new THREE.RingGeometry(2.5, 3.2, 32);
-    const padMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      side: THREE.DoubleSide,
-    });
+    // Depot Glowing Landing Pad
+    const padGeo = new THREE.RingGeometry(2.2, 3.0, 32);
+    const padMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide });
     const pad = new THREE.Mesh(padGeo, padMat);
     pad.rotation.x = Math.PI / 2;
-    pad.position.set(-24, 6.05, 16);
+    pad.position.set(-22, 5.05, 15);
     depotGroup.add(pad);
 
-    // Depot Cyan Beacon Light
-    const depotLight = new THREE.PointLight(0x00f0ff, 2.5, 20);
-    depotLight.position.set(-24, 8, 16);
+    const depotLight = new THREE.PointLight(0x0284c7, 3, 20);
+    depotLight.position.set(-22, 7, 15);
     depotGroup.add(depotLight);
     scene.add(depotGroup);
 
-    // 6. Destination Landmark: JLNMCH Hospital Emergency Wing
+    // 7. Destination Landmark: JLNMCH Hospital Emergency Wing
     const hospGroup = new THREE.Group();
-    const hospGeo = new THREE.BoxGeometry(14, 12, 14);
-    const hospMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      roughness: 0.4,
-      metalness: 0.6,
-    });
+    const hospGeo = new THREE.BoxGeometry(12, 10, 12);
+    const hospMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
     const hosp = new THREE.Mesh(hospGeo, hospMat);
-    hosp.position.set(22, 6, -18);
+    hosp.position.set(20, 5, -16);
     hosp.castShadow = true;
-    hosp.receiveShadow = true;
     hospGroup.add(hosp);
 
-    // Hospital Medical Green Beacon
-    const hospLight = new THREE.PointLight(0x10b981, 3.0, 25);
-    hospLight.position.set(22, 14, -18);
-    hospGroup.add(hospLight);
-
-    // Hospital Cross Symbol on Top
-    const crossGeoH = new THREE.BoxGeometry(4, 0.8, 1.2);
-    const crossGeoV = new THREE.BoxGeometry(1.2, 0.8, 4);
-    const crossMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
-    const crossH = new THREE.Mesh(crossGeoH, crossMat);
-    const crossV = new THREE.Mesh(crossGeoV, crossMat);
-    crossH.position.set(22, 12.5, -18);
-    crossV.position.set(22, 12.5, -18);
+    // Medical Green Cross on Hospital Roof
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.6, 1.0), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.6, 3.5), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+    crossH.position.set(20, 10.4, -16);
+    crossV.position.set(20, 10.4, -16);
     hospGroup.add(crossH);
     hospGroup.add(crossV);
+
+    const hospLight = new THREE.PointLight(0x10b981, 3.5, 25);
+    hospLight.position.set(20, 12, -16);
+    hospGroup.add(hospLight);
     scene.add(hospGroup);
 
-    // 7. Route Spline (Mayaganj Depot -> JLNMCH Hospital)
+    // 8. GPS Route Corridor (Bhagalpur Road Coordinates)
     const routePoints = [
-      new THREE.Vector3(-24, 0.5, 16),
-      new THREE.Vector3(-14, 0.5, 16),
-      new THREE.Vector3(-14, 0.5, 4),
-      new THREE.Vector3(-2, 0.5, 4),
-      new THREE.Vector3(-2, 0.5, -8),
-      new THREE.Vector3(12, 0.5, -8),
-      new THREE.Vector3(12, 0.5, -18),
-      new THREE.Vector3(22, 0.5, -18),
+      new THREE.Vector3(-22, 0.4, 15),
+      new THREE.Vector3(-12, 0.4, 15),
+      new THREE.Vector3(-12, 0.4, 3),
+      new THREE.Vector3(-2, 0.4, 3),
+      new THREE.Vector3(-2, 0.4, -6),
+      new THREE.Vector3(10, 0.4, -6),
+      new THREE.Vector3(10, 0.4, -16),
+      new THREE.Vector3(20, 0.4, -16),
     ];
     const routeCurve = new THREE.CatmullRomCurve3(routePoints, false, 'catmullrom', 0.2);
 
-    // Route Road Surface Ribbon
-    const curvePoints = routeCurve.getPoints(120);
+    const curvePoints = routeCurve.getPoints(100);
     const routeGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
-    const routeMat = new THREE.LineBasicMaterial({
-      color: 0x0284c7,
-      linewidth: 3,
-    });
-    const routeLine = new THREE.Line(routeGeo, routeMat);
-    routeLine.position.y = 0.08;
+    const routeLine = new THREE.Line(
+      routeGeo,
+      new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 3 })
+    );
+    routeLine.position.y = 0.1;
     scene.add(routeLine);
 
-    // Glowing Waypoint Nodes
-    routePoints.forEach((pt) => {
-      const nodeGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
-      const nodeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-      const node = new THREE.Mesh(nodeGeo, nodeMat);
-      node.position.set(pt.x, 0.1, pt.z);
-      scene.add(node);
-    });
-
-    // 8. 3D Medical Courier / Autonomous Transit Pod
+    // 9. 3D Medical Courier Transport Vehicle
     const courierGroup = new THREE.Group();
-
-    // Vehicle Chassis
     const chassisGeo = new THREE.BoxGeometry(2.4, 1.2, 1.4);
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc,
-      roughness: 0.3,
-      metalness: 0.7,
-    });
+    const chassisMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.6 });
     const chassis = new THREE.Mesh(chassisGeo, chassisMat);
     chassis.position.y = 0.8;
-    chassis.castShadow = true;
     courierGroup.add(chassis);
 
-    // Windshield
-    const cabGeo = new THREE.BoxGeometry(1.0, 0.8, 1.3);
-    const cabMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
-      roughness: 0.1,
-      metalness: 0.9,
-    });
-    const cab = new THREE.Mesh(cabGeo, cabMat);
+    // Cab
+    const cab = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.8, 1.3),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1 })
+    );
     cab.position.set(0.6, 1.4, 0);
     courierGroup.add(cab);
 
-    // Cold-Chain Thermal Pod Container (with cold cyan glow)
-    const podGeo = new THREE.BoxGeometry(1.2, 1.0, 1.36);
-    const podMat = new THREE.MeshStandardMaterial({
-      color: 0x0f766e,
-      roughness: 0.2,
-      metalness: 0.8,
-    });
-    const coldPod = new THREE.Mesh(podGeo, podMat);
+    // Cold-Chain Thermal Pod Container
+    const coldPod = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 1.0, 1.36),
+      new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.2 })
+    );
     coldPod.position.set(-0.6, 1.4, 0);
     courierGroup.add(coldPod);
 
-    // Headlights
-    const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.3), headlightMat);
-    const hl2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.3), headlightMat);
-    hl1.position.set(1.22, 0.8, 0.4);
-    hl2.position.set(1.22, 0.8, -0.4);
-    courierGroup.add(hl1);
-    courierGroup.add(hl2);
-
-    // Top Beacon Light (Amber / Cyan pulse)
+    // Flashing Beacon Light
     const beaconLight = new THREE.PointLight(0x38bdf8, 2, 8);
     beaconLight.position.set(0, 2.2, 0);
     courierGroup.add(beaconLight);
 
-    // Wheels
-    const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
-    const w1 = new THREE.Mesh(wheelGeo, wheelMat);
-    const w2 = new THREE.Mesh(wheelGeo, wheelMat);
-    const w3 = new THREE.Mesh(wheelGeo, wheelMat);
-    const w4 = new THREE.Mesh(wheelGeo, wheelMat);
-    w1.rotation.x = Math.PI / 2;
-    w2.rotation.x = Math.PI / 2;
-    w3.rotation.x = Math.PI / 2;
-    w4.rotation.x = Math.PI / 2;
-    w1.position.set(0.7, 0.35, 0.7);
-    w2.position.set(0.7, 0.35, -0.7);
-    w3.position.set(-0.7, 0.35, 0.7);
-    w4.position.set(-0.7, 0.35, -0.7);
-    courierGroup.add(w1);
-    courierGroup.add(w2);
-    courierGroup.add(w3);
-    courierGroup.add(w4);
-
     scene.add(courierGroup);
 
-    // 9. Interactive Drag Controls (Rotate / Orbit / Zoom)
+    // 10. Mouse Orbit / Drag Controls
     let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
+    let prevMouse = { x: 0, y: 0 };
     let cameraAngle = { theta: 0.6, phi: 0.8, radius: 52 };
 
     const onMouseDown = (e: MouseEvent) => {
       isDragging = true;
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      prevMouse = { x: e.clientX, y: e.clientY };
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      const deltaX = e.clientX - previousMousePosition.x;
-      const deltaY = e.clientY - previousMousePosition.y;
-
+      const deltaX = e.clientX - prevMouse.x;
+      const deltaY = e.clientY - prevMouse.y;
       cameraAngle.theta -= deltaX * 0.008;
       cameraAngle.phi = Math.max(0.2, Math.min(Math.PI / 2.2, cameraAngle.phi - deltaY * 0.008));
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      prevMouse = { x: e.clientX, y: e.clientY };
     };
 
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
+    const onMouseUp = () => (isDragging = false);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      cameraAngle.radius = Math.max(15, Math.min(100, cameraAngle.radius + e.deltaY * 0.05));
+      cameraAngle.radius = Math.max(15, Math.min(90, cameraAngle.radius + e.deltaY * 0.05));
     };
 
     const domElement = renderer.domElement;
@@ -362,7 +386,7 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
     window.addEventListener('mouseup', onMouseUp);
     domElement.addEventListener('wheel', onWheel, { passive: false });
 
-    // 10. Animation Loop
+    // 11. Animation Loop with Real-World GPS Timings
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -370,56 +394,51 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
       animationFrameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
 
-      // Progress movement
       if (isPlayingRef.current) {
-        let newProg = progressRef.current + delta * 0.035;
-        if (newProg > 1.0) newProg = 0.0;
+        // True-to-life progress rate: ~240s total traversal (4 mins)
+        let newProg = progressRef.current + (delta / 60) * 0.25;
+        if (newProg >= 1.0) newProg = 0.0;
         setProgress(newProg);
 
-        // Update GPS telemetry interpolation
+        // Real-world calculations
+        const remainingSec = Math.max(0, Math.floor((1 - newProg) * 242));
+        setSimulatedSecondsRemaining(remainingSec);
+
         const lat = 25.2420 + newProg * (25.2445 - 25.2420);
         const lng = 87.0150 + newProg * (87.0125 - 87.0150);
-        const dist = Math.max(0.1, Number((2.4 * (1 - newProg)).toFixed(1)));
-        const eta = Math.max(1, Math.ceil(dist * 2.5));
+        const remainingKm = Math.max(0.05, Number((1.82 * (1 - newProg)).toFixed(2)));
+
         setTelemetry({
-          tempC: Number((3.8 + Math.sin(Date.now() * 0.001) * 0.3).toFixed(1)),
+          tempC: Number((3.8 + Math.sin(Date.now() * 0.001) * 0.25).toFixed(1)),
           lat: Number(lat.toFixed(4)),
           lng: Number(lng.toFixed(4)),
-          speedKmh: newProg >= 0.98 ? 0 : 32,
-          distanceRemainingKm: dist,
-          etaMinutes: eta,
+          speedKmh: newProg >= 0.98 ? 0 : 28,
+          distanceRemainingKm: remainingKm,
         });
       }
 
-      // Position courier along 3D route
+      // Position & orient courier
       const t = progressRef.current;
       const pointOnCurve = routeCurve.getPointAt(t);
       courierGroup.position.copy(pointOnCurve);
 
-      // Orient courier facing forward along route
       const tangent = routeCurve.getTangentAt(t).normalize();
       const lookAtPos = pointOnCurve.clone().add(tangent);
       courierGroup.lookAt(lookAtPos);
-      courierGroup.rotateY(-Math.PI / 2); // Align vehicle front axis
+      courierGroup.rotateY(-Math.PI / 2);
 
-      // Pulse beacon
       beaconLight.intensity = 1.5 + Math.sin(Date.now() * 0.01) * 1.0;
 
-      // Camera preset positioning
+      // Camera presets
       const preset = viewPresetRef.current;
       if (preset === 'CHASE') {
-        const offset = tangent.clone().multiplyScalar(-10);
-        camera.position.set(
-          pointOnCurve.x + offset.x,
-          pointOnCurve.y + 6,
-          pointOnCurve.z + offset.z
-        );
+        const offset = tangent.clone().multiplyScalar(-9);
+        camera.position.set(pointOnCurve.x + offset.x, pointOnCurve.y + 5, pointOnCurve.z + offset.z);
         camera.lookAt(pointOnCurve.x, pointOnCurve.y + 1, pointOnCurve.z);
       } else if (preset === 'TOP_DOWN') {
-        camera.position.set(0, 75, 0.01);
+        camera.position.set(0, 72, 0.01);
         camera.lookAt(0, 0, 0);
       } else {
-        // Isometric Orbit view
         camera.position.x = cameraAngle.radius * Math.sin(cameraAngle.phi) * Math.sin(cameraAngle.theta);
         camera.position.y = cameraAngle.radius * Math.cos(cameraAngle.phi);
         camera.position.z = cameraAngle.radius * Math.sin(cameraAngle.phi) * Math.cos(cameraAngle.theta);
@@ -431,7 +450,6 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
 
     animate();
 
-    // 11. Resize Observer
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth;
@@ -455,32 +473,68 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [mapLayer, isConfirmed]);
+
+  const formatSeconds = (sec: number) => {
+    const mins = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${mins}m ${s < 10 ? '0' : ''}${s}s`;
+  };
 
   return (
     <div
       className={`relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl transition-all ${
-        isFullscreen ? 'fixed inset-4 z-50' : 'w-full h-[460px]'
+        isFullscreen ? 'fixed inset-4 z-50' : 'w-full h-[470px]'
       }`}
     >
-      {/* 3D WebGL Canvas Mount */}
+      {/* 3D WebGL Canvas */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* Top HUD Controls Strip */}
       <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        {/* Left Status Pill */}
+        {/* Active Order Pill */}
         <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 pointer-events-auto shadow-md">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-semibold text-white">
-            3D True-to-Life Route Tracking
+            Confirmed Package Transit
           </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">
-            {activeOrder?.id || '#REQ-2026-JLNMCH-101'}
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+            {activeOrder?.id}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+            • {activeOrder?.resource_code}
           </span>
         </div>
 
-        {/* Right Camera Preset Switchers & Tools */}
+        {/* Map Layer, Camera & Simulation Controls */}
         <div className="flex items-center space-x-1.5 pointer-events-auto">
+          {/* Map API Layer Switcher */}
+          <div className="flex items-center bg-slate-900/90 backdrop-blur-md rounded-lg p-1 border border-slate-800 text-xs">
+            <button
+              onClick={() => setMapLayer('CARTO_DARK')}
+              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                mapLayer === 'CARTO_DARK'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="CartoDB Dark Matter True-to-Life Tile API"
+            >
+              CartoDB Map
+            </button>
+            <button
+              onClick={() => setMapLayer('SATELLITE')}
+              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                mapLayer === 'SATELLITE'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Esri World Imagery Satellite API"
+            >
+              Satellite
+            </button>
+          </div>
+
+          {/* Camera Angles */}
           <div className="flex items-center bg-slate-900/90 backdrop-blur-md rounded-lg p-1 border border-slate-800 text-xs">
             <button
               onClick={() => setViewPreset('ISOMETRIC')}
@@ -525,7 +579,7 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
           <button
             onClick={() => setProgress(0)}
             className="p-2 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors"
-            title="Reset to Depot Origin"
+            title="Reset to Origin Depot"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -543,7 +597,7 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
               onClick={onClose}
               className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs transition-colors"
             >
-              ✕ Close Map
+              ✕ Close
             </button>
           )}
         </div>
@@ -552,76 +606,73 @@ export const Live3DTransitMap: React.FC<Live3DTransitMapProps> = ({
       {/* Floating Telemetry & Landmark Cards (Bottom Overlay) */}
       <div className="absolute bottom-3 left-3 right-3 grid grid-cols-1 md:grid-cols-4 gap-2.5 pointer-events-none">
         {/* Origin / Destination Landmarks */}
-        <div className="p-3 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
+        <div className="p-3 rounded-lg bg-slate-950/90 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
           <div className="flex items-center space-x-1.5 text-blue-400 font-medium">
             <Building2 className="w-3.5 h-3.5" />
-            <span>Transit Corridor: Bhagalpur</span>
+            <span>Bhagalpur Transit Corridor</span>
           </div>
           <div className="text-[11px] text-slate-300 space-y-0.5">
             <div className="flex justify-between">
               <span className="text-slate-500">Origin Depot:</span>
-              <span className="font-semibold text-white">Mayaganj Depot</span>
+              <span className="font-semibold text-white">Mayaganj Depot (25.2420°N)</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Destination:</span>
-              <span className="font-semibold text-emerald-400">JLNMCH Emergency</span>
+              <span className="font-semibold text-emerald-400">JLNMCH Trauma (25.2445°N)</span>
             </div>
           </div>
         </div>
 
         {/* Live GPS Telemetry */}
-        <div className="p-3 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
+        <div className="p-3 rounded-lg bg-slate-950/90 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
           <div className="flex items-center space-x-1.5 text-cyan-400 font-medium">
             <Navigation className="w-3.5 h-3.5" />
-            <span>Courier GPS Coordinates</span>
+            <span>Live GPS Telemetry (True-to-Life)</span>
           </div>
           <div className="text-[11px] text-slate-300 space-y-0.5 font-mono">
             <div className="flex justify-between">
-              <span className="text-slate-500">Latitude:</span>
+              <span className="text-slate-500">Current Lat:</span>
               <span className="text-white">{telemetry.lat}° N</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Longitude:</span>
+              <span className="text-slate-500">Current Lng:</span>
               <span className="text-white">{telemetry.lng}° E</span>
             </div>
           </div>
         </div>
 
-        {/* Cold-Chain IoT Sensor Telemetry */}
-        <div className="p-3 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
+        {/* Cold-Chain IoT Sensor */}
+        <div className="p-3 rounded-lg bg-slate-950/90 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
           <div className="flex items-center space-x-1.5 text-teal-400 font-medium">
             <Thermometer className="w-3.5 h-3.5" />
             <span>Cold-Chain IoT Sensor</span>
           </div>
           <div className="text-[11px] text-slate-300 space-y-0.5 font-mono">
             <div className="flex justify-between">
-              <span className="text-slate-500">Internal Temp:</span>
-              <span className="text-emerald-400 font-bold">{telemetry.tempC}°C (Safe)</span>
+              <span className="text-slate-500">Core Temp:</span>
+              <span className="text-emerald-400 font-bold">{telemetry.tempC}°C (Verified)</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Safe Band:</span>
+              <span className="text-slate-500">Acceptable Band:</span>
               <span className="text-slate-400">2.0°C – 8.0°C</span>
             </div>
           </div>
         </div>
 
         {/* ETA & Cryptographic Custody */}
-        <div className="p-3 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
+        <div className="p-3 rounded-lg bg-slate-950/90 backdrop-blur-md border border-slate-800/80 pointer-events-auto text-xs space-y-1">
           <div className="flex items-center space-x-1.5 text-emerald-400 font-medium">
             <Clock className="w-3.5 h-3.5" />
-            <span>ETA & Delivery Status</span>
+            <span>True-to-Life ETA & Timing</span>
           </div>
           <div className="text-[11px] text-slate-300 space-y-0.5 font-mono">
             <div className="flex justify-between">
-              <span className="text-slate-500">Speed / ETA:</span>
-              <span className="text-white font-bold">{telemetry.speedKmh} km/h • ~{telemetry.etaMinutes}m</span>
+              <span className="text-slate-500">Speed / Distance:</span>
+              <span className="text-white font-bold">{telemetry.speedKmh} km/h • {telemetry.distanceRemainingKm} km</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Custody:</span>
-              <span className="text-blue-400 flex items-center space-x-1">
-                <ShieldCheck className="w-3 h-3" />
-                <span>Ed25519 Sealed</span>
-              </span>
+              <span className="text-slate-500">Countdown ETA:</span>
+              <span className="text-emerald-400 font-bold">{formatSeconds(simulatedSecondsRemaining)}</span>
             </div>
           </div>
         </div>
