@@ -1,0 +1,28 @@
+# PharmaShield Backend - Production Container
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for cryptography and PostgreSQL compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend source code
+COPY backend/ backend/
+
+# Set environment
+ENV PYTHONPATH=/app
+ENV ENVIRONMENT=production
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+# Run database seed and start uvicorn production server
+CMD ["sh", "-c", "python backend/scripts/seed.py && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4"]

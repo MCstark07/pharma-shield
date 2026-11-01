@@ -19,6 +19,32 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: pharmashield_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://pharmashield:pharmashield_secret_password@db:5432/pharmashield_db
+      - SECRET_KEY=prod_super_secret_pharmashield_jwt_key_2026
+      - ENVIRONMENT=production
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: pharmashield_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
-
