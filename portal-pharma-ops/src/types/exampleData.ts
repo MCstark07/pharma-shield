@@ -317,37 +317,4 @@ export const DEFAULT_EXAMPLE_MEDICINES: CatalogItem[] = [
   }
 ];
 
-export const DEFAULT_EXAMPLE_REQUISITIONS = [
-  {
-    id: "REQ-2026-JLNMCH-101",
-    requesting_facility_id: "fac_jlnmch",
-    category: "MEDICINES",
-    resource_code: "PARACETAMOL_650MG",
-    quantity: 10,
-    urgency: "URGENT",
-    clinical_note: "Post-operative fever control in Emergency ICU Ward",
-    status: "REQUESTED",
-    patient_id: "PT-2026-JLNMCH-04",
-    patient_name: "Rohit Kumar",
-    bed_number: "ICU Bed #04",
-    doctor_approved: true,
-    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    temperature_celsius: 22.0
-  },
-  {
-    id: "REQ-2026-SADAR-202",
-    requesting_facility_id: "fac_sadar",
-    category: "BLOOD_COMPONENTS",
-    resource_code: "O_POS_RBC",
-    quantity: 4,
-    urgency: "CRITICAL",
-    clinical_note: "Emergency maternity ward hemorrhage - immediate transfusion needed",
-    status: "REQUESTED",
-    patient_id: "PT-2026-SADAR-12",
-    patient_name: "Pooja Kumari",
-    bed_number: "Maternity Bed #02",
-    doctor_approved: true,
-    created_at: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-    temperature_celsius: 4.1
-  }
-];
+export const DEFAULT_EXAMPLE_REQUISITIONS: any[] = [];
