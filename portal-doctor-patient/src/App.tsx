@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import { TripartiteNav } from './components/TripartiteNav';
+import { DEFAULT_EXAMPLE_MEDICINES, DEFAULT_EXAMPLE_REQUISITIONS } from './types/exampleData';
 
 interface CatalogItem {
   resource_code: string;
@@ -68,8 +69,8 @@ export default function App() {
   const [loginFacility, setLoginFacility] = useState('fac_jlnmch');
 
   // 2. Big Medicine Catalog State
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [catalog, setCatalog] = useState<CatalogItem[]>(DEFAULT_EXAMPLE_MEDICINES);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -82,20 +83,20 @@ export default function App() {
   const [successBanner, setSuccessBanner] = useState<{ id: string; message: string } | null>(null);
 
   // 4. Patient's Submitted Requests
-  const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [myRequests, setMyRequests] = useState<any[]>(DEFAULT_EXAMPLE_REQUISITIONS.filter(r => r.patient_id === 'PT-2026-JLNMCH-04'));
 
   // Fetch catalog from backend API
   const fetchCatalog = async () => {
-    setIsLoadingCatalog(true);
     try {
       const res = await fetch('/api/v1/medicines/catalog');
       if (res.ok) {
         const data = await res.json();
-        setCatalog(data);
-        // Keep selectedItem null until patient clicks on an item
+        if (Array.isArray(data) && data.length > 0) {
+          setCatalog(data);
+        }
       }
     } catch (err) {
-      console.error('Failed to fetch medicine catalog:', err);
+      console.log('Using robust client-side medicine catalog fallback');
     } finally {
       setIsLoadingCatalog(false);
     }

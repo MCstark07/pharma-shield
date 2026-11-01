@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import { TripartiteNav } from './components/TripartiteNav';
+import { DEFAULT_EXAMPLE_REQUISITIONS } from './types/exampleData';
 
 interface VendorInfo {
   facilityId: string;
@@ -63,7 +64,7 @@ const VENDOR_PRESETS: VendorInfo[] = [
 export function App() {
   // Pre-authenticated default vendor session
   const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(VENDOR_PRESETS[0]);
-  const [requisitions, setRequisitions] = useState<any[]>([]);
+  const [requisitions, setRequisitions] = useState<any[]>(DEFAULT_EXAMPLE_REQUISITIONS);
   const [inventory, setInventory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'PENDING_APPROVALS' | 'APPROVED_HISTORY' | 'DEPOT_STOCK'>('PENDING_APPROVALS');
@@ -72,19 +73,37 @@ export function App() {
 
   // Fetch initial requisitions & inventory from backend
   const fetchData = async () => {
-    setIsLoading(true);
     try {
-      const [reqRes, invRes] = await Promise.allSettled([
-        fetch('/api/v1/requisitions'),
-        fetch('/api/v1/depot-stocks'),
-      ]);
+      // 1. Read locally stored cross-portal requisitions
+      let localReqs: any[] = [];
+      try {
+        localReqs = JSON.parse(localStorage.getItem('ps_requisitions') || '[]');
+      } catch (e) {}
 
-      if (reqRes.status === 'fulfilled' && reqRes.value.ok) {
-        setRequisitions(await reqRes.value.json());
-      }
-      if (invRes.status === 'fulfilled' && invRes.value.ok) {
-        setInventory(await invRes.value.json());
-      }
+      // 2. Query backend
+      let serverReqs: any[] = [];
+      try {
+        const res = await fetch('/api/v1/requisitions');
+        if (res.ok) serverReqs = await res.json();
+      } catch (e) {}
+
+      // 3. Merge: DEFAULT_EXAMPLE_REQUISITIONS + serverReqs + localReqs
+      setRequisitions((prev) => {
+        const map = new Map<string, any>();
+        DEFAULT_EXAMPLE_REQUISITIONS.forEach((r) => map.set(r.id, r));
+        serverReqs.forEach((r) => map.set(r.id, r));
+        localReqs.forEach((r) => map.set(r.id, r));
+        prev.forEach((r) => {
+          if (map.has(r.id)) {
+            map.set(r.id, { ...map.get(r.id), ...r });
+          } else {
+            map.set(r.id, r);
+          }
+        });
+        const list = Array.from(map.values());
+        list.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        return list;
+      });
     } catch (err) {
       console.error('Error fetching vendor data:', err);
     } finally {
@@ -94,6 +113,8 @@ export function App() {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   // Real-time synchronization via WebSocket bus

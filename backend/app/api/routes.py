@@ -182,8 +182,44 @@ INVENTORY: List[InventoryStock] = [
 
 
 def init_seed_requisitions():
-    """Starts with clean requisitions queue so patient selects medicine with zero defaults."""
-    pass
+    """Seeds active pending patient requisitions for vendor review and approval."""
+    if not REQUISITIONS:
+        req1 = MedicalRequisition(
+            id="REQ-2026-JLNMCH-101",
+            requesting_facility_id="FAC-JLNMCH-01",
+            category=ResourceCategory.MEDICINES,
+            resource_code="PARACETAMOL_650MG",
+            quantity=10,
+            urgency=UrgencyLevel.URGENT,
+            clinical_note="Post-operative fever control in Emergency ICU Ward",
+            status=RequisitionStatus.REQUESTED,
+            patient_id="PT-2026-JLNMCH-04",
+            patient_name="Rohit Kumar",
+            bed_number="ICU Bed #04",
+            doctor_approved=True,
+            prescribed_by="Dr. Ananya Sharma",
+            created_at=datetime.now(timezone.utc).isoformat(),
+            temperature_celsius=22.0,
+        )
+        req2 = MedicalRequisition(
+            id="REQ-2026-SADAR-202",
+            requesting_facility_id="FAC-SADAR-01",
+            category=ResourceCategory.BLOOD_COMPONENTS,
+            resource_code="O_POS_RBC",
+            quantity=4,
+            urgency=UrgencyLevel.CRITICAL,
+            clinical_note="Emergency maternity ward hemorrhage - immediate transfusion needed",
+            status=RequisitionStatus.REQUESTED,
+            patient_id="PT-2026-SADAR-12",
+            patient_name="Pooja Kumari",
+            bed_number="Maternity Bed #02",
+            doctor_approved=True,
+            prescribed_by="Dr. S. K. Verma",
+            created_at=datetime.now(timezone.utc).isoformat(),
+            temperature_celsius=4.1,
+        )
+        REQUISITIONS[req1.id] = req1
+        REQUISITIONS[req2.id] = req2
 
 
 init_seed_requisitions()
