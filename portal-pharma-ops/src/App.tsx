@@ -3,151 +3,83 @@ import {
   Boxes,
   Shield,
   Activity,
-  Radio,
-  AlertOctagon,
-  FileSpreadsheet,
-  RefreshCw,
-  LogOut,
-  Building2,
   CheckCircle2,
-  Bell,
-  ArrowRight,
-  Sparkles,
+  Clock,
+  AlertOctagon,
+  LogOut,
+  RefreshCw,
+  Wifi,
+  Send,
+  Building2,
+  FileCheck2,
   Lock,
-  KeyRound,
+  ArrowRight,
+  User,
+  Truck,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
-import { VendorLoginModal, VendorInfo, VENDOR_PRESETS } from './components/VendorLoginModal';
-import { ActiveOrderShowcase } from './components/ActiveOrderShowcase';
-import { RequisitionTable, MedicalRequisition } from './components/RequisitionTable';
-import { StockAllocation, InventoryItem } from './components/StockAllocation';
 import { TripartiteNav } from './components/TripartiteNav';
-import { ShipmentTrackingMap } from './components/ShipmentTrackingMap';
-import { ThreeFreightLogistics } from './components/ThreeFreightLogistics';
-import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
-import { AIRebalanceModal } from './components/AIRebalanceModal';
-import { ColdChainDispositionModal } from './components/ColdChainDispositionModal';
-import { Navigation, Thermometer, ShieldAlert } from 'lucide-react';
+
+interface VendorInfo {
+  facilityId: string;
+  facilityName: string;
+  vendorName: string;
+  roleTitle: string;
+  depotType: string;
+}
+
+const VENDOR_PRESETS: VendorInfo[] = [
+  {
+    facilityId: 'fac_mayaganj',
+    facilityName: 'Mayaganj Central Blood & Pharmaceutical Depot',
+    vendorName: 'Dr. R. K. Sinha',
+    roleTitle: 'Chief Logistics Officer',
+    depotType: 'CENTRAL_BLOOD_DEPOT',
+  },
+  {
+    facilityId: 'fac_sadar',
+    facilityName: 'Sadar Hospital Depot Bhagalpur',
+    vendorName: 'Dr. S. K. Verma',
+    roleTitle: 'District Health Officer',
+    depotType: 'DISTRICT_HOSPITAL_DEPOT',
+  },
+  {
+    facilityId: 'fac_kolkata_hub',
+    facilityName: 'Kolkata Central MediHub',
+    vendorName: 'P. K. Banerjee',
+    roleTitle: 'Regional Supply Director',
+    depotType: 'INTER_STATE_WAREHOUSE',
+  },
+];
 
 export function App() {
+  // Pre-authenticated default vendor session
   const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(VENDOR_PRESETS[0]);
-  const [requisitions, setRequisitions] = useState<MedicalRequisition[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [requisitions, setRequisitions] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'ACTIVE_ORDERS' | 'LIVE_SHIPMENTS' | 'COLD_CHAIN' | 'ALL_REQUISITIONS' | 'INVENTORY'>('ACTIVE_ORDERS');
-  const [isFinderOpen, setIsFinderOpen] = useState(false);
-  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
-  const [dispositionShipment, setDispositionShipment] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<'PENDING_APPROVALS' | 'APPROVED_HISTORY' | 'DEPOT_STOCK'>('PENDING_APPROVALS');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvalToast, setApprovalToast] = useState<string | null>(null);
 
-  // Real-time Notification for Incoming Doctor-Approved Orders
-  const [incomingNotification, setIncomingNotification] = useState<{
-    id: string;
-    resource: string;
-    quantity: number;
-    patientName: string;
-    bedNumber: string;
-    doctorName: string;
-    facility: string;
-  } | null>(null);
-
-  // Dispatch Confirmation Toast
-  const [dispatchSuccessToast, setDispatchSuccessToast] = useState<{
-    id: string;
-    resource: string;
-    quantity: number;
-    hash?: string;
-    signature?: string;
-  } | null>(null);
-
-  // WebSocket sync
-  const handleWebSocketEvent = useCallback((event: WebSocketEvent) => {
-    if (event.event_type === 'INITIAL_STATE' && event.data) {
-      if (event.data.requisitions) setRequisitions(event.data.requisitions);
-      if (event.data.inventory) setInventory(event.data.inventory);
-    } else if (
-      (event.event_type === 'DOCTOR_PRESCRIPTION_APPROVED' ||
-        event.event_type === 'REQUISITION_CREATED' ||
-        event.event_type === 'PRESCRIPTION_REQUESTED') &&
-      event.data
-    ) {
-      setRequisitions((prev) => {
-        const exists = prev.some((r) => r.id === event.data.id);
-        if (exists) return prev.map((r) => (r.id === event.data.id ? event.data : r));
-        return [event.data, ...prev];
-      });
-
-      // If doctor just approved or created an order awaiting vendor dispatch
-      if (event.data.status === 'REQUESTED') {
-        setIncomingNotification({
-          id: event.data.id,
-          resource: event.data.resource_code,
-          quantity: event.data.quantity,
-          patientName: event.data.patient_name || 'Rohit Kumar',
-          bedNumber: event.data.bed_number || 'Bed #ICU-04',
-          doctorName: event.data.prescribed_by || 'Dr. Ananya Sharma',
-          facility: event.data.requesting_facility_id || 'FAC-JLNMCH-01',
-        });
-      }
-    } else if (event.event_type === 'REQUISITION_AUTHORIZED' && event.data) {
-      setRequisitions((prev) =>
-        prev.map((r) => (r.id === event.data.id ? { ...r, ...event.data } : r))
-      );
-      setInventory((prev) =>
-        prev.map((inv) => {
-          if (
-            inv.resource_code === event.data.resource_code &&
-            inv.facility_id === event.data.supplying_facility_id
-          ) {
-            const newQty = Math.max(0, inv.quantity - event.data.quantity);
-            const newDos = newQty / 5.0;
-            return {
-              ...inv,
-              quantity: newQty,
-              days_of_stock: newDos,
-              is_critical: newDos <= 2.0,
-            };
-          }
-          return inv;
-        })
-      );
-    } else if (event.event_type === 'SECURITY_ALERT' && event.data) {
-      if (event.data.requisition_id) {
-        setRequisitions((prev) =>
-          prev.map((r) =>
-            r.id === event.data.requisition_id
-              ? {
-                  ...r,
-                  status:
-                    event.data.attack_type === 'TEMPERATURE_BREACH'
-                      ? 'UNDER_REVIEW'
-                      : 'TAMPER_REJECTED',
-                }
-              : r
-          )
-        );
-      }
-    }
-  }, []);
-
-  const { isConnected, securityAlert, clearAlert } = useWebSocketSync(handleWebSocketEvent);
-
+  // Fetch initial requisitions & inventory from backend
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [reqRes, invRes] = await Promise.all([
+      const [reqRes, invRes] = await Promise.allSettled([
         fetch('/api/v1/requisitions'),
-        fetch('/api/v1/inventory'),
+        fetch('/api/v1/depot-stocks'),
       ]);
-      if (reqRes.ok) {
-        const reqData = await reqRes.json();
-        setRequisitions(reqData);
+
+      if (reqRes.status === 'fulfilled' && reqRes.value.ok) {
+        setRequisitions(await reqRes.value.json());
       }
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        setInventory(invData);
+      if (invRes.status === 'fulfilled' && invRes.value.ok) {
+        setInventory(await invRes.value.json());
       }
     } catch (err) {
-      console.error('[OPS] Error fetching data:', err);
+      console.error('Error fetching vendor data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -157,445 +89,435 @@ export function App() {
     fetchData();
   }, []);
 
-  const handleAuthorize = async (reqId: string) => {
+  // Real-time synchronization via WebSocket bus
+  const handleWebSocketEvent = useCallback((event: WebSocketEvent) => {
+    console.log('[VENDOR OPS] WS Event received:', event.event_type, event);
+
+    if (event.event_type === 'INITIAL_STATE' && event.data?.requisitions) {
+      setRequisitions(event.data.requisitions);
+    } else if (
+      event.event_type === 'REQUISITION_CREATED' ||
+      event.event_type === 'PRESCRIPTION_REQUESTED' ||
+      event.event_type === 'DOCTOR_PRESCRIPTION_APPROVED'
+    ) {
+      if (event.data) {
+        setRequisitions((prev) => [event.data, ...prev.filter((r) => r.id !== event.data.id)]);
+        setApprovalToast(
+          `🔔 New incoming request #${event.data.id} for ${event.data.quantity} units of ${event.data.resource_code} from Patient on Port 5173!`
+        );
+        setTimeout(() => setApprovalToast(null), 8000);
+      }
+    } else if (event.event_type === 'REQUISITION_AUTHORIZED') {
+      if (event.data) {
+        setRequisitions((prev) =>
+          prev.map((r) => (r.id === event.data.id ? { ...r, ...event.data, status: 'AUTHORIZED' } : r))
+        );
+      }
+    }
+  }, []);
+
+  const { isConnected } = useWebSocketSync(handleWebSocketEvent);
+
+  // Handle Vendor Approval of an incoming request
+  const handleApproveRequisition = async (reqId: string) => {
+    if (!currentVendor) return;
+    setApprovingId(reqId);
+
+    const payload = {
+      supplying_facility_id: currentVendor.facilityId,
+      authorized_by: `${currentVendor.vendorName} (${currentVendor.facilityName})`,
+      batch_id: `BATCH-${Math.floor(10000 + Math.random() * 90000)}`,
+    };
+
     try {
-      const response = await fetch(`/api/v1/requisitions/${reqId}/authorize`, {
+      const res = await fetch(`/api/v1/requisitions/${reqId}/authorize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          supplying_facility_id: currentVendor?.facilityId || 'FAC-MAYAGANJ-01',
-          authorized_by: currentVendor?.vendorName || 'Dr. R. K. Sinha (Chief Medical Officer)',
-          batch_id: `BATCH-2026-${currentVendor?.facilityId.split('-')[1] || 'MAYAGANJ'}-ALPHA`,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        alert(`Authorization Failed: ${err.detail || 'Internal server error'}`);
-        return;
+      if (res.ok) {
+        const updated = await res.json();
+        setRequisitions((prev) =>
+          prev.map((r) => (r.id === reqId ? { ...r, ...updated, status: 'AUTHORIZED' } : r))
+        );
+        setApprovalToast(
+          `✓ Successfully APPROVED & SIGNED Request #${reqId}! Applied Ed25519 signature & broadcast to Patient on Port 5173.`
+        );
+        setTimeout(() => setApprovalToast(null), 8000);
+      } else {
+        alert('Failed to authorize requisition.');
       }
-
-      const updated = await response.json();
-      setRequisitions((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-
-      // Trigger Dispatch Confirmation Toast
-      setDispatchSuccessToast({
-        id: updated.id,
-        resource: updated.resource_code,
-        quantity: updated.quantity,
-        hash: updated.event_hash,
-        signature: updated.signature_hex,
-      });
-
-      // Clear incoming banner if it was for this req
-      if (incomingNotification?.id === reqId) {
-        setIncomingNotification(null);
-      }
-
-      setTimeout(() => setDispatchSuccessToast(null), 10000);
     } catch (err) {
-      console.error('Failed to authorize:', err);
+      console.error('Error authorizing requisition:', err);
       alert('Network error authorizing requisition.');
+    } finally {
+      setApprovingId(null);
     }
   };
 
-  const pendingCount = requisitions.filter((r) => r.status === 'REQUESTED').length;
-  const authorizedCount = requisitions.filter((r) => r.status === 'AUTHORIZED').length;
+  const pendingRequests = requisitions.filter((r) => r.status !== 'AUTHORIZED');
+  const approvedRequests = requisitions.filter((r) => r.status === 'AUTHORIZED');
 
-  // View 1: If not logged in, show Vendor Login Modal
+  // Render Vendor Login screen if logged out
   if (!currentVendor) {
-    return <VendorLoginModal onLogin={(vendor) => setCurrentVendor(vendor)} />;
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-2">
+              <Building2 className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              PharmaShield Vendor Login
+            </h1>
+            <p className="text-xs text-slate-400">
+              Sign in as an authorized depot officer to review and approve hospital requisitions.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <span className="text-xs font-mono text-slate-400 block">SELECT VENDOR PRESET:</span>
+            {VENDOR_PRESETS.map((vp) => (
+              <button
+                key={vp.facilityId}
+                onClick={() => setCurrentVendor(vp)}
+                className="w-full p-4 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500 text-left transition-all cursor-pointer space-y-1"
+              >
+                <div className="text-sm font-bold text-white">{vp.facilityName}</div>
+                <div className="text-xs text-slate-400 flex items-center justify-between font-mono">
+                  <span>Officer: {vp.vendorName}</span>
+                  <span className="text-amber-400">{vp.roleTitle}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // View 2: Clean, Aesthetic Vendor Dashboard
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
-      {/* PharmaShield Universal Tripartite Command Strip */}
-      <TripartiteNav
-        currentPortal="LOGISTICS"
-        isConnected={isConnected}
-        onOpenUniversalFinder={() => setIsFinderOpen(true)}
-        onOpenRebalanceModal={() => setIsRebalanceOpen(true)}
-      />
-      {/* Real-time Security Alert Banner */}
-      {securityAlert && (
-        <div className="bg-rose-950/80 border-b border-rose-500/40 px-4 py-3 sticky top-0 z-50 backdrop-blur-md flex items-center justify-between text-xs animate-in slide-in-from-top duration-200">
-          <div className="flex items-center gap-2.5">
-            <AlertOctagon className="w-4 h-4 text-rose-400 animate-pulse" />
-            <span className="font-bold text-rose-200">
-              Zero-Trust Interception: {securityAlert.attack_type || 'SECURITY ALERT'}
-            </span>
-            <span className="text-rose-300/80 hidden sm:inline">
-              — Requisition #{securityAlert.requisition_id} payload quarantined.
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      {/* Universal Tripartite Command Strip */}
+      <TripartiteNav currentPortal="LOGISTICS" isConnected={isConnected} />
+
+      {/* Real-time Approval Toast */}
+      {approvalToast && (
+        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-3.5 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span className="text-xs font-mono text-emerald-200 font-medium">
+              {approvalToast}
             </span>
           </div>
           <button
-            onClick={clearAlert}
-            className="px-2.5 py-1 bg-rose-900/60 hover:bg-rose-800 text-rose-200 rounded-lg text-[10px] font-bold"
+            onClick={() => setApprovalToast(null)}
+            className="text-xs px-2.5 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Modern Compact Navbar */}
-      <header className="border-b border-slate-800/50 bg-slate-950/40 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
-              <Shield className="w-4 h-4" />
+      {/* Main Vendor Header */}
+      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="font-extrabold text-base tracking-tight text-white uppercase font-mono">
+                PharmaShield <span className="text-amber-400">Vendor Operations Hub</span>
+              </h1>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+                PORT 5174
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm text-white tracking-tight">PharmaShield</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
-                  VENDOR
-                </span>
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono">
-                {currentVendor.facilityName}
-              </div>
-            </div>
+            <p className="text-xs text-slate-400 font-mono">
+              Depot: <strong className="text-white">{currentVendor.facilityName}</strong> • {currentVendor.vendorName} ({currentVendor.roleTitle})
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3 text-xs font-mono">
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800">
+            <Wifi className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-rose-400'}`} />
+            <span className={isConnected ? 'text-slate-300' : 'text-rose-400'}>
+              {isConnected ? 'LIVE WEBSOCKET SYNC' : 'OFFLINE'}
+            </span>
           </div>
 
-          {/* Clean Segment Tabs */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/60 rounded-xl border border-slate-800/60 text-xs font-medium">
-            <button
-              onClick={() => setActiveTab('LIVE_SHIPMENTS')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'LIVE_SHIPMENTS'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>Live Shipments (GPS)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('COLD_CHAIN')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'COLD_CHAIN'
-                  ? 'bg-[#EE503B] text-white font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Thermometer className="w-3.5 h-3.5" />
-              <span>Cold-Chain (2-8°C)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('ACTIVE_ORDERS')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'ACTIVE_ORDERS'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Active Orders</span>
-              {pendingCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('ALL_REQUISITIONS')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'ALL_REQUISITIONS'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>History</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('INVENTORY')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'INVENTORY'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Boxes className="w-3.5 h-3.5" />
-              <span>Depot Stock</span>
-            </button>
-          </div>
-
-          {/* Right Profile & Actions */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span className="text-[11px]">{isConnected ? 'Live' : 'Syncing'}</span>
-            </div>
-
-            <button
-              onClick={fetchData}
-              disabled={isLoading}
-              className="p-2 text-slate-400 hover:text-slate-200 transition-colors"
-              title="Refresh Queue"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-
-            <button
-              onClick={() => setCurrentVendor(null)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition-colors cursor-pointer"
-              title="Switch Vendor Profile"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setCurrentVendor(null)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Switch Depot</span>
+          </button>
         </div>
       </header>
 
-      {/* 🔔 New Incoming Doctor-Approved Order Notification Bar */}
-      {incomingNotification && (
-        <div className="bg-gradient-to-r from-cyan-950/90 via-slate-900 to-cyan-950/90 border-b-2 border-cyan-500/80 px-4 py-3 sticky top-16 z-30 shadow-2xl animate-in slide-in-from-top-3 duration-300 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center flex-shrink-0 animate-bounce">
-                <Bell className="w-4 h-4" />
-              </div>
+      {/* Main Work Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+        {/* Top Summary Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <span className="text-xs font-mono text-slate-400">AWAITING APPROVAL</span>
+            <div className="text-3xl font-extrabold text-amber-400 mt-2 font-mono flex items-center space-x-2">
+              <span>{pendingRequests.length}</span>
+              {pendingRequests.length > 0 && (
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Pending requests submitted from Port 5173</p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <span className="text-xs font-mono text-slate-400">APPROVED & DISPATCHED</span>
+            <div className="text-3xl font-extrabold text-emerald-400 mt-2 font-mono">
+              {approvedRequests.length}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Chained with Ed25519 Digital Signatures</p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <span className="text-xs font-mono text-slate-400">SIGNING AUTHORITY</span>
+            <div className="text-sm font-bold text-white mt-2 font-mono">
+              {currentVendor.facilityId}
+            </div>
+            <p className="text-[11px] text-cyan-400 mt-1">Zero-Trust Cryptographic Ledger Active</p>
+          </div>
+        </div>
+
+        {/* Tab Controls */}
+        <div className="flex items-center space-x-2 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800 w-fit text-xs font-medium">
+          <button
+            onClick={() => setActiveTab('PENDING_APPROVALS')}
+            className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+              activeTab === 'PENDING_APPROVALS'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Pending Approvals ({pendingRequests.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('APPROVED_HISTORY')}
+            className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+              activeTab === 'APPROVED_HISTORY'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <FileCheck2 className="w-4 h-4" />
+            <span>Approved History ({approvedRequests.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('DEPOT_STOCK')}
+            className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+              activeTab === 'DEPOT_STOCK'
+                ? 'bg-cyan-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Boxes className="w-4 h-4" />
+            <span>Depot Inventory Stock</span>
+          </button>
+        </div>
+
+        {/* TAB 1: PENDING APPROVALS QUEUE */}
+        {activeTab === 'PENDING_APPROVALS' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-cyan-300 tracking-tight">
-                    🔔 NEW PRESCRIPTION APPROVED & TRANSMITTED:
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono text-[10px] font-bold">
-                    {incomingNotification.id}
-                  </span>
-                </div>
-                <div className="text-slate-300 text-[11px] mt-0.5">
-                  <strong>{incomingNotification.doctorName}</strong> approved <strong className="text-white">{incomingNotification.quantity} Units of {incomingNotification.resource}</strong> for {incomingNotification.patientName} ({incomingNotification.bedNumber}) at {incomingNotification.facility}.
-                </div>
+                <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-amber-400" />
+                  <span>Incoming Patient Requisitions Awaiting Vendor Approval</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Click "Approve & Dispatch Order" to apply your Ed25519 digital signature and notify the patient on Port 5173.
+                </p>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <button
-                onClick={() => {
-                  setActiveTab('ACTIVE_ORDERS');
-                  setIncomingNotification(null);
-                }}
-                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 cursor-pointer"
+                onClick={fetchData}
+                className="text-xs flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-colors font-mono cursor-pointer"
               >
-                <span>Inspect & Dispatch Now</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setIncomingNotification(null)}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs transition-colors cursor-pointer"
-              >
-                Dismiss
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Queue</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ✓ Vendor Dispatch & Cryptographic Anchoring Confirmation Toast */}
-      {dispatchSuccessToast && (
-        <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-emerald-950/90 border-b-2 border-emerald-500/80 px-4 py-3 sticky top-16 z-30 shadow-2xl animate-in slide-in-from-top-3 duration-300 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-4 h-4" />
+            {isLoading ? (
+              <div className="p-12 text-center text-slate-500 font-mono text-xs">
+                Loading incoming requisitions...
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-emerald-300 tracking-tight">
-                    ✓ ORDER DISPATCHED & CRYPTOGRAPHICALLY ANCHORED:
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-mono text-[10px] font-bold">
-                    #{dispatchSuccessToast.id}
-                  </span>
-                </div>
-                <div className="text-slate-300 text-[11px] mt-0.5 font-mono">
-                  Signed via Ed25519 Authority Key • Chained to SHA-256 Ledger Block {dispatchSuccessToast.hash ? `(${dispatchSuccessToast.hash.slice(0, 16)}...)` : ''} • Real-time dispatch telemetry streaming to Hospital Bedside.
-                </div>
+            ) : pendingRequests.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 text-xs font-mono bg-slate-900/40 rounded-3xl border border-slate-800 space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <div className="text-sm font-bold text-white">All Clear! No Pending Requests</div>
+                <div>When a patient submits a request in Port 5173, it will appear here in real time.</div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 shadow-xl space-y-4 transition-all"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-base text-white">{req.id}</span>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                            req.urgency === 'CRITICAL'
+                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          }`}
+                        >
+                          {req.urgency} PRIORITY
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
+                          {req.category}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500 font-mono">
+                        Requested: {new Date(req.created_at || Date.now()).toLocaleTimeString()}
+                      </span>
+                    </div>
 
-            <button
-              onClick={() => setDispatchSuccessToast(null)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 text-xs font-bold transition-colors cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                        <span className="text-slate-500 block mb-1">REQUESTED RESOURCE</span>
+                        <strong className="text-base text-cyan-300 block">{req.resource_code}</strong>
+                        <span className="text-white font-bold">{req.quantity} Units Requested</span>
+                      </div>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 space-y-6">
-        {/* Subtle Operational Status Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/40 text-xs">
-          <div className="flex items-center gap-6">
-            <div>
-              <span className="text-slate-500 text-[11px] block">Awaiting Dispatch</span>
-              <span className="text-base font-bold text-cyan-400 font-mono">{pendingCount} Orders</span>
-            </div>
-            <div className="h-6 w-px bg-slate-800" />
-            <div>
-              <span className="text-slate-500 text-[11px] block">Authorized & Chained</span>
-              <span className="text-base font-bold text-emerald-400 font-mono">{authorizedCount} Dispatched</span>
-            </div>
-            <div className="h-6 w-px bg-slate-800" />
-            <div>
-              <span className="text-slate-500 text-[11px] block">Active Signer</span>
-              <span className="text-xs font-semibold text-slate-300">{currentVendor.vendorName}</span>
-            </div>
-          </div>
+                      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                        <span className="text-slate-500 block mb-1">PATIENT / DESTINATION</span>
+                        <strong className="text-white block">{req.patient_name || 'Patient'}</strong>
+                        <span className="text-slate-400 block">{req.bed_number || 'Bed'} • {req.requesting_facility_id}</span>
+                      </div>
 
-          <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Ed25519 Authority: {currentVendor.facilityId}</span>
-          </div>
-        </div>
+                      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                        <span className="text-slate-500 block mb-1">CLINICAL NOTE</span>
+                        <p className="text-slate-300 italic font-sans">
+                          "{req.clinical_note || 'Emergency clinical supply request'}"
+                        </p>
+                      </div>
+                    </div>
 
-        {/* Tab 0: Live Medical Shipment Tracking & Cold-Chain Telemetry */}
-        {activeTab === 'LIVE_SHIPMENTS' && (
-          <div className="space-y-6">
-            <ThreeFreightLogistics
-              shipmentStatus={requisitions[0]?.status || 'IN_TRANSIT'}
-              temperature={requisitions[0]?.temperature_celsius || 4.1}
-            />
-            <ShipmentTrackingMap
-              onOpenDispositionModal={(s) => setDispositionShipment(s)}
-            />
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                      <div className="text-xs text-slate-400 font-mono flex items-center space-x-1.5">
+                        <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Ready for Ed25519 signature by {currentVendor.vendorName}</span>
+                      </div>
+
+                      <button
+                        onClick={() => handleApproveRequisition(req.id)}
+                        disabled={approvingId === req.id}
+                        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>
+                          {approvingId === req.id
+                            ? 'Signing & Authorizing...'
+                            : '✓ Approve & Dispatch Order'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tab 0.5: Dedicated Cold-Chain Telemetry & Clinical Disposition Sign-Off */}
-        {activeTab === 'COLD_CHAIN' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-mono text-slate-400">COLD-CHAIN SAFE BOUNDS</span>
-                <div className="text-2xl font-bold text-emerald-400 mt-2 font-mono">2.0°C – 8.0°C</div>
-                <p className="text-[11px] text-slate-400 mt-1">Automatic excursion lockdown below or above</p>
-              </div>
-              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-mono text-slate-400">CURRENT CRYOPACK STATUS</span>
-                <div className="text-2xl font-bold text-cyan-400 mt-2 font-mono">4.2°C (Optimal)</div>
-                <p className="text-[11px] text-slate-400 mt-1">IoT Telemetry active via Bluetooth BLE</p>
-              </div>
-              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-mono text-slate-400">HUMAN-IN-THE-LOOP PROTOCOL</span>
-                <div className="text-2xl font-bold text-amber-400 mt-2 font-mono">MANDATORY</div>
-                <p className="text-[11px] text-slate-400 mt-1">Excursions can never be auto-cleared by software</p>
-              </div>
-            </div>
+        {/* TAB 2: APPROVED HISTORY */}
+        {activeTab === 'APPROVED_HISTORY' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+              <FileCheck2 className="w-5 h-5 text-emerald-400" />
+              <span>Cryptographically Authorized & Dispatched Orders</span>
+            </h2>
 
-            <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-amber-400" />
-                    <span>Active Consignments Requiring Clinical Disposition</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Shipments flagged UNDER_REVIEW due to temperature excursion. Qualified medical officer or toxicologist sign-off required.
-                  </p>
-                </div>
+            {approvedRequests.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 font-mono text-xs bg-slate-900/40 rounded-3xl border border-slate-800">
+                No orders approved yet.
               </div>
+            ) : (
+              <div className="divide-y divide-slate-800 bg-slate-900/80 rounded-3xl border border-slate-800 p-6 shadow-xl">
+                {approvedRequests.map((req) => (
+                  <div key={req.id} className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-1 font-mono">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-white text-sm">{req.id}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                          ✓ DISPATCHED & SIGNED
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-300">
+                        {req.quantity} Units of <strong className="text-cyan-300">{req.resource_code}</strong> for {req.patient_name} ({req.bed_number})
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        Signer: {req.authorized_by} • Batch: {req.batch_id || 'BATCH-PRIMARY'}
+                      </div>
+                    </div>
 
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-amber-300">SHP-2026-8812</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      UNDER_REVIEW
+                    <div className="text-right font-mono text-xs shrink-0 text-slate-400">
+                      <div>Authorized: {new Date(req.authorized_at || Date.now()).toLocaleTimeString()}</div>
+                      {req.event_hash && (
+                        <div className="text-[10px] text-emerald-400">
+                          Hash: {req.event_hash.slice(0, 16)}...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: DEPOT STOCK */}
+        {activeTab === 'DEPOT_STOCK' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+              <Boxes className="w-5 h-5 text-cyan-400" />
+              <span>Depot Inventory Stock Levels ({currentVendor.facilityName})</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {inventory.map((inv, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 font-mono">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-400 font-bold">{inv.resource_code}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">{inv.facility_id}</span>
+                  </div>
+                  <div className="text-2xl font-extrabold text-white">
+                    {inv.quantity} <span className="text-xs text-slate-500 font-normal">Units</span>
+                  </div>
+                  <div className="text-xs text-slate-400 flex justify-between">
+                    <span>Days of Stock: <strong>{inv.days_of_stock?.toFixed(1)}d</strong></span>
+                    <span className={inv.is_critical ? 'text-rose-400 font-bold' : 'text-emerald-400'}>
+                      {inv.is_critical ? 'CRITICAL SHORTAGE' : 'STABLE'}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-300">
-                    Insulin Glargine / Covaxin Cryo-Box • Route: Mayaganj Central Depot → JLNMCH Emergency
-                  </div>
-                  <div className="text-[11px] text-rose-400 font-mono">
-                    ⚠️ Ambient Spike Logged: 11.8°C (Threshold: 8.0°C) • Excursion Duration: ~8 mins
-                  </div>
                 </div>
-
-                <button
-                  onClick={() =>
-                    setDispositionShipment({
-                      id: 'SHP-2026-8812',
-                      resource_code: 'INSULIN_GLARGINE',
-                      category: 'VACCINES',
-                      current_temp: 11.8,
-                      max_temp: 8.0,
-                      min_temp: 2.0,
-                    })
-                  }
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer shrink-0"
-                >
-                  <Thermometer className="w-4 h-4" />
-                  <span>Review Clinical Disposition</span>
-                </button>
-              </div>
+              ))}
             </div>
           </div>
-        )}
-
-        {/* Tab 1: Focused Active Orders Showcase */}
-        {activeTab === 'ACTIVE_ORDERS' && (
-          <ActiveOrderShowcase
-            requisitions={requisitions}
-            currentVendor={currentVendor}
-            onAuthorize={handleAuthorize}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* Tab 2: Requisition Table History */}
-        {activeTab === 'ALL_REQUISITIONS' && (
-          <RequisitionTable
-            requisitions={requisitions}
-            onAuthorize={handleAuthorize}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* Tab 3: Depot Stock Allocation */}
-        {activeTab === 'INVENTORY' && (
-          <StockAllocation inventory={inventory} />
         )}
       </main>
 
-      {/* Modals for Problem 2, 3, 4, 6 */}
-      <UniversalMedicineFinderModal
-        isOpen={isFinderOpen}
-        onClose={() => setIsFinderOpen(false)}
-      />
-      <AIRebalanceModal
-        isOpen={isRebalanceOpen}
-        onClose={() => setIsRebalanceOpen(false)}
-        onActionComplete={fetchData}
-      />
-      <ColdChainDispositionModal
-        isOpen={!!dispositionShipment}
-        shipment={dispositionShipment}
-        onClose={() => setDispositionShipment(null)}
-        onDispositionRecorded={(res) => {
-          fetchData();
-          setDispatchSuccessToast({
-            id: res.shipment_id,
-            resource: 'COLD_CHAIN_DISPOSITION',
-            quantity: 1,
-            hash: res.event_hash,
-            signature: res.signature_hex,
-          });
-        }}
-      />
-
-      {/* Subtle Minimal Footer */}
-      <footer className="py-4 text-center text-[11px] text-slate-600">
-        PharmaShield • Vendor Dispatch Hub • Port 5174
+      {/* Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950 px-6 py-3 text-center text-xs font-mono text-slate-500">
+        PharmaShield Vendor Logistics Operations • Port 5174
       </footer>
     </div>
   );

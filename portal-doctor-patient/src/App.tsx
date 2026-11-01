@@ -1,503 +1,722 @@
-import React, { useState, useEffect } from 'react';
-import { ThreeBioVial } from './components/ThreeBioVial';
-import { ThreeMorphosNetwork } from './components/ThreeMorphosNetwork';
-import { MatterSupplyDrop } from './components/MatterSupplyDrop';
-import { EmergencyOrderForm } from './components/EmergencyOrderForm';
-import { LoginModal } from './components/LoginModal';
-import { PatientView } from './components/PatientView';
-import { TripartiteNav } from './components/TripartiteNav';
-import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
-import { AIRebalanceModal } from './components/AIRebalanceModal';
-import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
-  Activity,
-  Wifi,
-  AlertOctagon,
-  CheckCircle2,
-  Droplets,
-  Thermometer,
-  LogOut,
-  Stethoscope,
-  User,
-  RefreshCw,
-  Clock,
-  ArrowRight,
-  Sparkles,
   Search,
-  MapPin,
   Pill,
+  Droplets,
   Syringe,
-  Microscope,
   HeartPulse,
   Package,
+  Microscope,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Send,
+  User,
+  LogOut,
+  RefreshCw,
+  Wifi,
+  Sparkles,
+  ArrowRight,
+  Filter,
+  Check
 } from 'lucide-react';
+import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
+import { TripartiteNav } from './components/TripartiteNav';
 
-interface UserInfo {
-  role: 'DOCTOR' | 'PATIENT';
+interface CatalogItem {
+  resource_code: string;
   name: string;
-  title: string;
+  category: string;
+  brand?: string;
+  generic?: string;
+  pack_size: string;
+  min_temp?: number;
+  max_temp?: number;
+  reference_price_inr: number;
+  total_available_units: number;
+}
+
+interface PatientUser {
+  patientId: string;
+  name: string;
+  bedNumber: string;
   facility: string;
+  facilityId: string;
 }
 
 export default function App() {
-  // Pre-authenticated default session for instant evaluation
-  const [currentUser, setCurrentUser] = useState<UserInfo>({
-    role: 'DOCTOR',
-    name: 'Dr. Ananya Sharma',
-    title: 'Chief of Trauma & Critical ICU Care',
-    facility: 'JLNMCH Bhagalpur',
+  // 1. Patient Authentication State
+  const [patient, setPatient] = useState<PatientUser | null>({
+    patientId: 'PT-2026-JLNMCH-04',
+    name: 'Rohit Kumar',
+    bedNumber: 'ICU Bed #04',
+    facility: 'JLNMCH Bhagalpur (Emergency Wing)',
+    facilityId: 'fac_jlnmch',
   });
 
-  const [activeRequisition, setActiveRequisition] = useState<any>({
-    id: 'REQ-2026-JLNMCH-001',
-    category: 'BLOOD_COMPONENTS',
-    resource_code: 'O_POS_RBC',
-    quantity: 10,
-    status: 'PRESCRIPTION_PENDING',
-    patient_id: 'PT-2026-JLNMCH-04',
-    patient_name: 'Rohit Kumar',
-    bed_number: 'Bed #ICU-04',
-    clinical_note: 'Severe acute blood loss trauma - Emergency O+ RBC transfusion needed',
-    temperature_celsius: 4.2,
-  });
+  // Login form fields (for when user logs out or switches)
+  const [loginName, setLoginName] = useState('Rohit Kumar');
+  const [loginBed, setLoginBed] = useState('ICU Bed #04');
+  const [loginFacility, setLoginFacility] = useState('fac_jlnmch');
 
-  const [physicsDropCount, setPhysicsDropCount] = useState<number>(1);
-  const [leftVisual, setLeftVisual] = useState<'BIO_VIAL' | 'MORPHOS_NETWORK'>('MORPHOS_NETWORK');
-  const [isApproving, setIsApproving] = useState<boolean>(false);
-  const [doctorSuccessToast, setDoctorSuccessToast] = useState<string | null>(null);
-  const [isFinderOpen, setIsFinderOpen] = useState(false);
-  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
+  // 2. Big Medicine Catalog State
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-  // Fetch initial requisition state from backend
-  const fetchRequisition = async () => {
+  // 3. Selected Medicine Requisition State
+  const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [urgency, setUrgency] = useState<'CRITICAL' | 'URGENT' | 'STANDARD'>('URGENT');
+  const [clinicalNote, setClinicalNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  // 4. Patient's Submitted Requests
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+
+  // Fetch catalog from backend API
+  const fetchCatalog = async () => {
+    setIsLoadingCatalog(true);
+    try {
+      const res = await fetch('/api/v1/medicines/catalog');
+      if (res.ok) {
+        const data = await res.json();
+        setCatalog(data);
+        if (data.length > 0 && !selectedItem) {
+          setSelectedItem(data[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch medicine catalog:', err);
+    } finally {
+      setIsLoadingCatalog(false);
+    }
+  };
+
+  // Fetch all requisitions to display in patient's tracker
+  const fetchRequisitions = async () => {
     try {
       const res = await fetch('/api/v1/requisitions');
       if (res.ok) {
-        const reqs = await res.json();
-        if (reqs && reqs.length > 0) {
-          setActiveRequisition(reqs[0]);
-        }
+        const data = await res.json();
+        setMyRequests(data);
       }
-    } catch (e) {
-      console.warn('Could not fetch active requisitions:', e);
+    } catch (err) {
+      console.error('Failed to fetch requisitions:', err);
     }
   };
 
   useEffect(() => {
-    fetchRequisition();
+    fetchCatalog();
+    fetchRequisitions();
   }, []);
 
-  // Real-time synchronization with central bus
-  const { isConnected, securityAlert, clearAlert } = useWebSocketSync((event: WebSocketEvent) => {
-    console.log('[CLINICAL WS] Event received:', event.event_type, event);
+  // Real-time synchronization with central WebSocket bus
+  const handleWebSocketEvent = useCallback((event: WebSocketEvent) => {
+    console.log('[PATIENT PORTAL] WS Event received:', event.event_type, event);
 
-    if (event.event_type === 'INITIAL_STATE' && event.data?.requisitions?.length > 0) {
-      setActiveRequisition(event.data.requisitions[0]);
-    } else if (event.event_type === 'PRESCRIPTION_REQUESTED' && event.data) {
-      setActiveRequisition(event.data);
-    } else if (event.event_type === 'DOCTOR_PRESCRIPTION_APPROVED' && event.data) {
-      setActiveRequisition(event.data);
-      setPhysicsDropCount((c) => c + 1);
+    if (event.event_type === 'INITIAL_STATE' && event.data?.requisitions) {
+      setMyRequests(event.data.requisitions);
+    } else if (
+      event.event_type === 'REQUISITION_CREATED' ||
+      event.event_type === 'PRESCRIPTION_REQUESTED'
+    ) {
+      if (event.data) {
+        setMyRequests((prev) => [event.data, ...prev.filter((r) => r.id !== event.data.id)]);
+      }
     } else if (event.event_type === 'REQUISITION_AUTHORIZED') {
-      const data = event.data;
-      setActiveRequisition(data);
-      setPhysicsDropCount((c) => c + 1);
-    } else if (event.event_type === 'SECURITY_ALERT') {
-      setActiveRequisition((prev: any) => ({
-        ...prev,
-        status:
-          event.data.attack_type === 'TEMPERATURE_BREACH'
-            ? 'UNDER_REVIEW'
-            : 'TAMPER_REJECTED',
-      }));
+      if (event.data) {
+        setMyRequests((prev) =>
+          prev.map((r) => (r.id === event.data.id ? { ...r, ...event.data, status: 'AUTHORIZED' } : r))
+        );
+        setSuccessBanner(
+          `🎉 Great news! Your request #${event.data.id} was just APPROVED by the Vendor depot!`
+        );
+        setTimeout(() => setSuccessBanner(null), 10000);
+      }
     }
+  }, []);
+
+  const { isConnected } = useWebSocketSync(handleWebSocketEvent);
+
+  // Submit patient requisition to the backend
+  const handleSubmitRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem || !patient) return;
+
+    setIsSubmitting(true);
+    const payload = {
+      requesting_facility_id: patient.facilityId,
+      category: selectedItem.category,
+      resource_code: selectedItem.resource_code,
+      quantity: orderQuantity,
+      urgency: urgency,
+      clinical_note: clinicalNote || `Prescription request for ${patient.name} (${patient.bedNumber})`,
+      patient_id: patient.patientId,
+      patient_name: patient.name,
+      bed_number: patient.bedNumber,
+    };
+
+    try {
+      const res = await fetch('/api/v1/requisitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setMyRequests((prev) => [created, ...prev]);
+        setSuccessBanner(
+          `✓ Request #${created.id} submitted successfully! Transmitted to Vendor Operations on Port 5174 for approval.`
+        );
+        setClinicalNote('');
+        setTimeout(() => setSuccessBanner(null), 9000);
+      } else {
+        alert('Failed to submit requisition. Please check backend server.');
+      }
+    } catch (err) {
+      console.error('Error submitting requisition:', err);
+      alert('Network error submitting requisition.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Filtered catalog list
+  const filteredCatalog = catalog.filter((item) => {
+    const matchesCategory =
+      selectedCategory === 'ALL' || item.category === selectedCategory;
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      item.name.toLowerCase().includes(query) ||
+      item.resource_code.toLowerCase().includes(query) ||
+      (item.generic && item.generic.toLowerCase().includes(query)) ||
+      (item.brand && item.brand.toLowerCase().includes(query));
+    return matchesCategory && matchesSearch;
   });
 
-  const handlePatientRequest = async (orderData: any) => {
-    try {
-      const res = await fetch('/api/v1/patient/prescription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setActiveRequisition(data);
-        setPhysicsDropCount((c) => c + 1);
-      }
-    } catch (err) {
-      console.error('Failed to submit prescription:', err);
-    }
+  // Login handler
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPatient({
+      patientId: `PT-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: loginName || 'Patient User',
+      bedNumber: loginBed || 'General Ward #01',
+      facility: loginFacility === 'fac_jlnmch' ? 'JLNMCH Bhagalpur' : 'Sadar Hospital Bhagalpur',
+      facilityId: loginFacility,
+    });
   };
 
-  const handleDoctorApprove = async () => {
-    if (!activeRequisition?.id) return;
-    setIsApproving(true);
-    try {
-      const res = await fetch(`/api/v1/doctor/prescriptions/${activeRequisition.id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          doctor_name: 'Dr. Ananya Sharma',
-          doctor_license: 'LIC-BH-8842-TRAUMA',
-          clinical_notes: 'Clinically verified for emergency bedside infusion protocol',
-        }),
-      });
+  // If logged out, render clean Patient Login screen
+  if (!patient) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mb-2">
+              <Pill className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              PharmaShield Patient Login
+            </h1>
+            <p className="text-xs text-slate-400">
+              Sign in to browse the medicine catalog and submit emergency requisitions.
+            </p>
+          </div>
 
-      if (res.ok) {
-        const data = await res.json();
-        setActiveRequisition(data);
-        setDoctorSuccessToast(`Prescription for ${data.resource_code} signed & transmitted to Mayaganj Central Depot on Port 5174!`);
-        setTimeout(() => setDoctorSuccessToast(null), 8000);
-      }
-    } catch (err) {
-      console.error('Failed to approve prescription:', err);
-    } finally {
-      setIsApproving(false);
-    }
-  };
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-mono text-slate-400 block mb-1">
+                PATIENT FULL NAME
+              </label>
+              <input
+                type="text"
+                required
+                value={loginName}
+                onChange={(e) => setLoginName(e.target.value)}
+                placeholder="e.g. Rohit Kumar"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
+              />
+            </div>
 
-  const handleOrderSubmitted = (order: any) => {
-    setActiveRequisition(order);
-    setPhysicsDropCount((c) => c + 1);
-  };
+            <div>
+              <label className="text-xs font-mono text-slate-400 block mb-1">
+                BED / WARD NUMBER
+              </label>
+              <input
+                type="text"
+                required
+                value={loginBed}
+                onChange={(e) => setLoginBed(e.target.value)}
+                placeholder="e.g. ICU Bed #04"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
+              />
+            </div>
 
-  const handleToggleRole = () => {
-    if (currentUser.role === 'DOCTOR') {
-      setCurrentUser({
-        role: 'PATIENT',
-        name: 'Rohit Kumar',
-        title: 'Bed #ICU-04 • Patient ID: PT-2026-JLNMCH-04',
-        facility: 'JLNMCH Bhagalpur (Emergency Wing)',
-      });
-    } else {
-      setCurrentUser({
-        role: 'DOCTOR',
-        name: 'Dr. Ananya Sharma',
-        title: 'Chief of Trauma & Critical ICU Care',
-        facility: 'JLNMCH Bhagalpur',
-      });
-    }
-  };
+            <div>
+              <label className="text-xs font-mono text-slate-400 block mb-1">
+                HOSPITAL FACILITY
+              </label>
+              <select
+                value={loginFacility}
+                onChange={(e) => setLoginFacility(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
+              >
+                <option value="fac_jlnmch">JLNMCH Bhagalpur (Tertiary Care)</option>
+                <option value="fac_sadar">Sadar Hospital Bhagalpur</option>
+                <option value="fac_siliguri_pharmacy">Siliguri Care Pharmacy</option>
+              </select>
+            </div>
 
-  const statusColor =
-    activeRequisition?.status === 'AUTHORIZED'
-      ? 'text-emerald-400 bg-emerald-950/80 border-emerald-500'
-      : activeRequisition?.status === 'TAMPER_REJECTED' ||
-        activeRequisition?.status === 'UNDER_REVIEW'
-      ? 'text-rose-400 bg-rose-950/80 border-rose-500'
-      : activeRequisition?.status === 'PRESCRIPTION_PENDING'
-      ? 'text-amber-400 bg-amber-950/80 border-amber-500'
-      : 'text-cyan-400 bg-cyan-950/80 border-cyan-500';
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
+            >
+              Sign In to Patient Portal
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-slate-800 text-center">
+            <span className="text-xs text-slate-500 block mb-2">QUICK DEMO PRESET</span>
+            <button
+              onClick={() => {
+                setPatient({
+                  patientId: 'PT-2026-JLNMCH-04',
+                  name: 'Rohit Kumar',
+                  bedNumber: 'ICU Bed #04',
+                  facility: 'JLNMCH Bhagalpur (Emergency Wing)',
+                  facilityId: 'fac_jlnmch',
+                });
+              }}
+              className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg border border-slate-700 font-mono transition-colors"
+            >
+              Quick Login as Rohit Kumar (ICU Bed #04)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#010001] text-[#F4F7FA] flex flex-col font-sans selection:bg-[#00D9FF] selection:text-black">
-      {/* PharmaShield Universal Tripartite Command Strip */}
-      <TripartiteNav
-        currentPortal="CLINICAL"
-        isConnected={isConnected}
-        onOpenUniversalFinder={() => setIsFinderOpen(true)}
-        onOpenRebalanceModal={() => setIsRebalanceOpen(true)}
-      />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      {/* Universal Tripartite Command Strip */}
+      <TripartiteNav currentPortal="CLINICAL" isConnected={isConnected} />
 
-      {/* 🚨 Security Alert Banner */}
-      {securityAlert && (
-        <div className="bg-rose-950/95 border-b-2 border-rose-500 px-6 py-3.5 flex items-center justify-between text-rose-200 text-xs font-mono shadow-2xl animate-in slide-in-from-top duration-200 sticky top-0 z-50">
+      {/* Real-time Notification Banner */}
+      {successBanner && (
+        <div className="bg-emerald-950/95 border-b-2 border-emerald-500 px-6 py-3.5 sticky top-0 z-50 backdrop-blur-md shadow-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
           <div className="flex items-center space-x-3">
-            <span className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 animate-pulse">
-              <AlertOctagon className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span className="text-xs font-mono text-emerald-200 font-medium">
+              {successBanner}
             </span>
-            <div>
-              <span className="font-extrabold text-rose-200 text-sm uppercase tracking-wider flex items-center space-x-2">
-                <span>🚨 ZERO-TRUST SECURITY DEFENSE INTERCEPTION</span>
-                <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/30 font-mono text-rose-300">
-                  {securityAlert.attack_type || 'EXPLOIT BLOCKED'}
-                </span>
-              </span>
-              <p className="text-rose-300/90 text-xs mt-0.5">
-                Target Requisition <span className="font-bold text-white">{securityAlert.requisition_id}</span> compromised. Cryptographic assertion failed; payload deflected to quarantine.
-              </p>
-            </div>
           </div>
           <button
-            onClick={clearAlert}
-            className="px-3.5 py-1.5 rounded-lg bg-rose-900/80 hover:bg-rose-800 text-rose-100 uppercase font-bold text-xs border border-rose-700/60 transition-colors"
+            onClick={() => setSuccessBanner(null)}
+            className="text-xs px-2.5 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-100 rounded-lg border border-emerald-700 font-mono"
           >
-            Acknowledge Alert
+            Dismiss
           </button>
         </div>
       )}
 
-      {/* Main Clinical Navigation Bar */}
-      <header className="border-b border-zinc-800/80 bg-[#09090D]/90 backdrop-blur-md sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
+      {/* Main Header */}
+      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-xl bg-[#00D9FF]/10 border border-[#00D9FF]/30 text-[#00D9FF] shadow-md">
-            <Shield className="w-5 h-5" />
+          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <Pill className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="font-extrabold text-sm tracking-tight text-white uppercase font-mono">
-                PHARMASHIELD <span className="text-[#00D9FF]">MEDICAL INTELLIGENCE</span>
+              <h1 className="font-extrabold text-base tracking-tight text-white uppercase font-mono">
+                PharmaShield <span className="text-cyan-400">Patient Portal</span>
               </h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 text-cyan-300 border border-cyan-900">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
                 PORT 5173
               </span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                  currentUser.role === 'DOCTOR'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                    : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                }`}
-              >
-                {currentUser.role === 'DOCTOR' ? 'Physician Mode' : 'Patient Mode'}
-              </span>
             </div>
-            <p className="text-[11px] text-zinc-400 font-mono">
-              {currentUser.name} • {currentUser.title}
+            <p className="text-xs text-slate-400 font-mono">
+              Patient: <strong className="text-white">{patient.name}</strong> • {patient.bedNumber} • {patient.facility}
             </p>
           </div>
         </div>
 
-        {/* Right Header Navigation & Actions */}
         <div className="flex items-center space-x-3 text-xs font-mono">
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
-            <Wifi
-              className={`w-3.5 h-3.5 ${
-                isConnected ? 'text-[#00D9FF] animate-pulse' : 'text-rose-400'
-              }`}
-            />
-            <span className={isConnected ? 'text-zinc-300' : 'text-rose-400'}>
-              {isConnected ? 'BUS CONNECTED (:8000)' : 'RECONNECTING...'}
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800">
+            <Wifi className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-rose-400'}`} />
+            <span className={isConnected ? 'text-slate-300' : 'text-rose-400'}>
+              {isConnected ? 'LIVE WEBSOCKET SYNC' : 'OFFLINE'}
             </span>
           </div>
 
           <button
-            onClick={handleToggleRole}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#00D9FF]/10 hover:bg-[#00D9FF]/20 text-cyan-300 border border-[#00D9FF]/30 transition-colors cursor-pointer"
-            title="Switch between Doctor and Patient view"
+            onClick={() => setPatient(null)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Switch to {currentUser.role === 'DOCTOR' ? 'Patient POV' : 'Doctor POV'}</span>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Switch Patient</span>
           </button>
         </div>
       </header>
 
-      {/* Morphos-Inspired Hero Section */}
-      <section className="relative border-b border-zinc-800/80 bg-gradient-to-b from-[#090912] via-[#05050A] to-[#010001] px-6 py-12">
-        <div className="max-w-6xl mx-auto space-y-6 text-center">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#00D9FF]/10 border border-[#00D9FF]/30 text-[#00D9FF] text-xs font-mono">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>INTELLIGENT HEALTHCARE AVAILABILITY & VERIFIABLE LOGISTICS</span>
+      {/* Main Content Layout */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+        {/* Section 1: Search & Category Filter Strip */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2">
+                <span>Browse & Select Medicines</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  {filteredCatalog.length} Available
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Select required supplies below to create an emergency requisition for vendor dispatch.
+              </p>
+            </div>
+
+            {/* Search Input */}
+            <div className="w-full md:w-80 flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 focus-within:border-cyan-500">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search by name, brand, or code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-slate-500"
+              />
+            </div>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
-            Healthcare resources should <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D9FF] via-[#247BFF] to-[#965BFF]">never be out of reach.</span>
-          </h1>
+          {/* Category Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
+            {[
+              { id: 'ALL', label: 'All Items' },
+              { id: 'MEDICINES', label: 'Medicines' },
+              { id: 'BLOOD_COMPONENTS', label: 'Blood Units (ABO)' },
+              { id: 'VACCINES', label: 'Vaccines (2-8°C)' },
+              { id: 'EMERGENCY_SUPPLIES', label: 'Emergency Supplies' },
+              { id: 'MEDICAL_EQUIPMENT', label: 'Equipment' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  selectedCategory === cat.id
+                    ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                    : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <p className="text-sm md:text-base text-zinc-400 max-w-2xl mx-auto">
-            Discover emergency medicines, compatible blood components, and cold-chain vaccines across Bihar, West Bengal, and Jharkhand with transparent landed cost intelligence.
-          </p>
+        {/* Section 2: Two-Column Split (Big List on Left, Request Form on Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Big List of Medicines (7 Cols) */}
+          <div className="lg:col-span-7 space-y-3">
+            {isLoadingCatalog ? (
+              <div className="p-12 text-center text-slate-500 font-mono text-xs">
+                Loading medicine catalog...
+              </div>
+            ) : filteredCatalog.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 font-mono text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
+                No matching medicines found for "{searchQuery}".
+              </div>
+            ) : (
+              filteredCatalog.map((item) => {
+                const isSelected = selectedItem?.resource_code === item.resource_code;
+                return (
+                  <div
+                    key={item.resource_code}
+                    onClick={() => setSelectedItem(item)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? 'bg-cyan-950/40 border-cyan-500 shadow-lg shadow-cyan-500/10'
+                        : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3.5 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          item.category === 'BLOOD_COMPONENTS'
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            : item.category === 'VACCINES'
+                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                            : 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                        }`}
+                      >
+                        {item.category === 'BLOOD_COMPONENTS' ? (
+                          <Droplets className="w-5 h-5" />
+                        ) : item.category === 'VACCINES' ? (
+                          <Syringe className="w-5 h-5" />
+                        ) : (
+                          <Pill className="w-5 h-5" />
+                        )}
+                      </div>
 
-          {/* Quick Search Bar */}
-          <div className="max-w-2xl mx-auto flex items-center gap-2 p-2 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 shadow-2xl backdrop-blur-xl">
-            <Search className="w-5 h-5 text-zinc-400 ml-3 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search Remdesivir, O+ Blood, Insulin Glargine, Trauma Kits..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && setIsFinderOpen(true)}
-              className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-zinc-500 font-sans"
-            />
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-white truncate">
+                            {item.name}
+                          </h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 shrink-0">
+                            {item.pack_size}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 flex items-center space-x-2 mt-0.5 font-mono">
+                          <span>{item.resource_code}</span>
+                          {item.brand && <span>• Brand: {item.brand}</span>}
+                          {item.min_temp !== undefined && (
+                            <span className="text-cyan-400">
+                              • Temp: {item.min_temp}°C–{item.max_temp}°C
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-base font-extrabold text-cyan-300 font-mono">
+                        ₹{item.reference_price_inr?.toFixed(2)}
+                      </div>
+                      <div className="text-[11px] font-mono text-emerald-400">
+                        {item.total_available_units} in Stock
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedItem(item);
+                        }}
+                        className={`mt-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                          isSelected
+                            ? 'bg-cyan-500 text-slate-950'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        }`}
+                      >
+                        {isSelected ? '✓ Selected' : 'Select'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Right Column: Requisition Request Form (5 Cols) */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 sticky top-24">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                    <Send className="w-4 h-4 text-cyan-400" />
+                    <span>Create Supply Requisition</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Submits directly to Vendor Depot on Port 5174 for approval.
+                  </p>
+                </div>
+              </div>
+
+              {selectedItem ? (
+                <form onSubmit={handleSubmitRequest} className="space-y-4 text-xs font-mono">
+                  {/* Selected Medicine Summary Card */}
+                  <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-cyan-400 font-bold uppercase">
+                        TARGET RESOURCE
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200">
+                        {selectedItem.category}
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-white font-sans">
+                      {selectedItem.name}
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span>Unit Price: ₹{selectedItem.reference_price_inr}</span>
+                      <span>Pack: {selectedItem.pack_size}</span>
+                    </div>
+                  </div>
+
+                  {/* Quantity Counter */}
+                  <div>
+                    <label className="text-slate-400 block mb-1.5">REQUISITION QUANTITY (UNITS)</label>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrderQuantity((q) => Math.max(1, q - 1))}
+                        className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-16 text-center text-xl font-bold text-white font-mono">
+                        {orderQuantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOrderQuantity((q) => q + 1)}
+                        className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <div className="text-right flex-1 text-slate-400">
+                        Estimated Total: <strong className="text-cyan-300 font-bold text-sm">₹{(orderQuantity * selectedItem.reference_price_inr).toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Urgency Level */}
+                  <div>
+                    <label className="text-slate-400 block mb-1.5">CLINICAL URGENCY LEVEL</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['STANDARD', 'URGENT', 'CRITICAL'] as const).map((lvl) => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => setUrgency(lvl)}
+                          className={`py-2 rounded-xl text-center font-bold text-[10px] transition-all cursor-pointer ${
+                            urgency === lvl
+                              ? lvl === 'CRITICAL'
+                                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
+                                : lvl === 'URGENT'
+                                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                                : 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                              : 'bg-slate-950 text-slate-400 border border-slate-800'
+                          }`}
+                        >
+                          {lvl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Clinical Justification Note */}
+                  <div>
+                    <label className="text-slate-400 block mb-1.5">PATIENT / CLINICAL JUSTIFICATION</label>
+                    <textarea
+                      rows={2}
+                      value={clinicalNote}
+                      onChange={(e) => setClinicalNote(e.target.value)}
+                      placeholder={`e.g. Urgent prescription for ${patient.name} (${patient.bedNumber})`}
+                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500 font-sans"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Transmitting Request...' : 'Send Request to Vendor Depot (:5174)'}</span>
+                  </button>
+                </form>
+              ) : (
+                <div className="p-8 text-center text-slate-500 text-xs font-mono">
+                  Select a medicine from the list to create a request.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Live Requisition Status Tracker (Real-Time Updates from Port 5174) */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-cyan-400" />
+                <span>My Active Requisitions & Live Vendor Approval Tracker</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Watch status flip from <strong className="text-amber-400">PENDING</strong> to <strong className="text-emerald-400">APPROVED</strong> when the vendor confirms on Port 5174.
+              </p>
+            </div>
             <button
-              onClick={() => setIsFinderOpen(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-[#00D9FF] to-[#247BFF] hover:from-[#00c2e6] hover:to-[#1f6ee6] text-black font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center space-x-1.5 shrink-0"
+              onClick={fetchRequisitions}
+              className="text-xs flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors font-mono cursor-pointer"
             >
-              <span>Universal Search</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Status</span>
             </button>
           </div>
 
-          {/* 6 Medical Resource Category Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            {[
-              { id: 'MEDICINES', label: 'Medicines', icon: Pill, count: '6 Batches' },
-              { id: 'BLOOD_COMPONENTS', label: 'Blood Units (ABO)', icon: Droplets, count: 'Crisis Stock' },
-              { id: 'VACCINES', label: 'Vaccines (2-8°C)', icon: Syringe, count: 'Continuous Telemetry' },
-              { id: 'MEDICAL_EQUIPMENT', label: 'Medical Equipment', icon: HeartPulse, count: 'Calibrated' },
-              { id: 'DIAGNOSTIC_SAMPLES', label: 'Diagnostic Samples', icon: Microscope, count: 'Transit Viable' },
-              { id: 'EMERGENCY_SUPPLIES', label: 'Emergency Trauma', icon: Package, count: 'Critical Priority' },
-            ].map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setIsFinderOpen(true)}
-                  className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-cyan-500/40 text-xs text-zinc-300 hover:text-white transition-all font-mono"
-                >
-                  <Icon className="w-3.5 h-3.5 text-[#00D9FF]" />
-                  <span>{cat.label}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400">
-                    {cat.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {currentUser.role === 'PATIENT' ? (
-          <PatientView
-            activeRequisition={activeRequisition}
-            userInfo={currentUser}
-            onLogout={() => {}}
-            onRequestPrescription={handlePatientRequest}
-          />
-        ) : (
-          <div className="space-y-6">
-            {/* Step 2 Alert: Pending Patient Prescription Approval Card */}
-            {activeRequisition?.status === 'PRESCRIPTION_PENDING' && (
-              <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-950/40 via-zinc-900 to-zinc-900 border-2 border-amber-500/60 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-300">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center flex-shrink-0 animate-pulse">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-mono font-bold tracking-widest text-amber-400 uppercase block">
-                      ACTION REQUIRED // PATIENT PRESCRIPTION APPROVAL
-                    </span>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      <span>{activeRequisition.patient_name || 'Rohit Kumar'} ({activeRequisition.bed_number || 'Bed #ICU-04'})</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">
-                        {activeRequisition.urgency}
-                      </span>
-                    </h3>
-                    <p className="text-xs text-zinc-300 mt-0.5">
-                      Requested: <strong className="text-cyan-300">{activeRequisition.quantity} Units of {activeRequisition.resource_code}</strong> — "{activeRequisition.clinical_note}"
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleDoctorApprove}
-                  disabled={isApproving}
-                  className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isApproving ? 'Authorizing & Signing...' : 'Approve & Sign Prescription (Dr. Ananya Sharma)'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Doctor Success Toast */}
-            {doctorSuccessToast && (
-              <div className="p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 flex items-center justify-between shadow-xl animate-in fade-in duration-200 font-mono text-xs">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span>{doctorSuccessToast}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Grid Layout: Digital Twin & Requisition Dispatcher */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-              {/* Left Column: Morphos 3D Network & Bio-Vial & Matter.js Dispenser */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className="flex items-center justify-between p-1 bg-zinc-900/80 rounded-xl border border-zinc-800 text-xs font-mono">
-                  <button
-                    onClick={() => setLeftVisual('MORPHOS_NETWORK')}
-                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer ${
-                      leftVisual === 'MORPHOS_NETWORK'
-                        ? 'bg-[#00D9FF] text-black font-bold shadow-md'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Morphos 3D Network</span>
-                  </button>
-                  <button
-                    onClick={() => setLeftVisual('BIO_VIAL')}
-                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer ${
-                      leftVisual === 'BIO_VIAL'
-                        ? 'bg-[#00D9FF] text-black font-bold shadow-md'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Droplets className="w-3.5 h-3.5" />
-                    <span>3D Bio-Vial</span>
-                  </button>
-                </div>
-
-                {leftVisual === 'MORPHOS_NETWORK' ? (
-                  <ThreeMorphosNetwork
-                    urgency={activeRequisition?.urgency || 'CRITICAL'}
-                    status={activeRequisition?.status || 'REQUESTED'}
-                  />
-                ) : (
-                  <ThreeBioVial
-                    status={activeRequisition?.status || 'REQUESTED'}
-                    resourceCode={activeRequisition?.resource_code || 'O_POS_RBC'}
-                  />
-                )}
-
-                <MatterSupplyDrop
-                  dropTriggerCount={physicsDropCount}
-                  category={activeRequisition?.category}
-                  isAuthorized={activeRequisition?.status === 'AUTHORIZED'}
-                />
-
-                <div className="rounded-2xl bg-zinc-900/90 border border-zinc-800 p-4 space-y-3 font-mono text-xs shadow-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-400">ACTIVE TRACKING:</span>
-                    <span className="text-zinc-200 font-bold">{activeRequisition?.id}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-400">STATUS:</span>
-                    <span className={`px-2 py-0.5 rounded border uppercase font-bold text-[10px] ${statusColor}`}>
-                      {activeRequisition?.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-400">COLD-CHAIN TEMPERATURE:</span>
-                    <span className="text-cyan-400 font-bold flex items-center gap-1">
-                      <Thermometer className="w-3.5 h-3.5" />
-                      {activeRequisition?.temperature_celsius ?? 4.2}°C (Safe: 2-8°C)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Emergency Order Creator */}
-              <div className="lg:col-span-7 space-y-6">
-                <EmergencyOrderForm onOrderSubmitted={handleOrderSubmitted} />
-              </div>
+          {myRequests.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs font-mono">
+              No requisitions submitted yet. Select a medicine above to create your first request!
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="divide-y divide-slate-800/80">
+              {myRequests.map((req) => {
+                const isApproved = req.status === 'AUTHORIZED';
+                return (
+                  <div key={req.id} className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-sm text-white">{req.id}</span>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                            isApproved
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                          }`}
+                        >
+                          {isApproved ? '✓ APPROVED BY VENDOR (DISPATCHED)' : '🟡 AWAITING VENDOR APPROVAL (ON PORT 5174)'}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                          {req.urgency}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-300">
+                        Resource: <strong className="text-cyan-300">{req.quantity} Units of {req.resource_code}</strong>
+                        {req.patient_name && <span> • Patient: {req.patient_name} ({req.bed_number})</span>}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        "{req.clinical_note}"
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono text-xs shrink-0">
+                      {isApproved ? (
+                        <div className="space-y-1">
+                          <span className="text-emerald-400 font-bold flex items-center space-x-1 justify-end">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Authorized & Signed</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Signer: {req.authorized_by || 'Mayaganj Central Depot'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-amber-400/90 text-xs">
+                          Waiting for vendor sign-off...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* Universal Medicine Finder Modal */}
-      <UniversalMedicineFinderModal
-        isOpen={isFinderOpen}
-        onClose={() => setIsFinderOpen(false)}
-      />
-
-      {/* AI Stock Rebalance Modal */}
-      <AIRebalanceModal
-        isOpen={isRebalanceOpen}
-        onClose={() => setIsRebalanceOpen(false)}
-      />
-
       {/* Footer */}
-      <footer className="border-t border-zinc-900 bg-black/80 px-6 py-3 text-center text-xs font-mono text-zinc-500">
-        PharmaShield Medical Intelligence • Port 5173 • Securathon 2026
+      <footer className="border-t border-slate-900 bg-slate-950 px-6 py-3 text-center text-xs font-mono text-slate-500">
+        PharmaShield Patient & Clinical Supply Portal • Port 5173
       </footer>
     </div>
   );

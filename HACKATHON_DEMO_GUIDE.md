@@ -110,3 +110,4 @@
 1. **Zero-Gas Tamper Evidence:** Why use slow, expensive blockchains with gas fees when Ed25519 digital signatures (RFC 8032) and canonical SHA-256 hash chains give 100% cryptographic tamper evidence with sub-millisecond verification?
 2. **Clinical Safety over Commercial Convenience:** Blood is never traded as an open e-commerce commodity; life-saving allocations use row-level locking (`SELECT ... FOR UPDATE`) to prevent double-spending; thermal excursions can never be auto-cleared without verified clinician sign-off.
 3. **Tripartite Architecture:** Three specialized, dedicated user interfaces (Clinical, Logistics, Cyber) tied together by a unified real-time FastAPI WebSocket event bus.
+
