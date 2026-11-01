@@ -55,7 +55,7 @@ async def main():
     )
     res = await simulate_attack(atk_dto)
     print("   Attack Result:", res.status)
-    print("   Alert Title:", res.alert_title)
+    print("   Alert Title:", res.alert_title.encode("ascii", "ignore").decode())
 
     print("5. Testing get_audit_ledger...")
     ledger = get_audit_ledger()

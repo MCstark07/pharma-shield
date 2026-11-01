@@ -29,6 +29,8 @@ class InventoryItem(Base):
     # Additional metadata fields for extended domain rules
     details = Column(JSON, nullable=False, default=dict)
     daily_consumption = Column(Float, default=1.0)
+    price_inr = Column(Float, nullable=True, default=0.0)
+    stock_confidence = Column(String(50), nullable=False, default="CONFIRMED")  # CONFIRMED, LAST_REPORTED, INDICATIVE
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 

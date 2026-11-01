@@ -102,12 +102,16 @@ sign_event_hash = sign_hash
 
 
 def verify_signature(
-    public_key: Union[ed25519.Ed25519PublicKey, str, bytes],
-    event_hash: str,
-    signature_hex: str,
+    public_key: Union[ed25519.Ed25519PublicKey, str, bytes, None] = None,
+    event_hash: str = "",
+    signature_hex: str = "",
+    public_key_hex: Optional[str] = None,
 ) -> bool:
+    key = public_key if public_key is not None else public_key_hex
+    if key is None:
+        return False
     try:
-        pub_key_obj = load_public_key(public_key)
+        pub_key_obj = load_public_key(key)
         sig_bytes = bytes.fromhex(signature_hex)
         pub_key_obj.verify(sig_bytes, event_hash.encode('utf-8'))
         return True

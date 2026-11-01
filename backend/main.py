@@ -97,7 +97,7 @@ def health_endpoint(db: Session = Depends(get_db)):
         db_status = f"unhealthy: {str(e)}"
 
     return {
-        "status": "HEALTHY",
+        "status": "healthy",
         "system": "PharmaShield Central Bus",
         "version": settings.VERSION,
         "database": db_status,

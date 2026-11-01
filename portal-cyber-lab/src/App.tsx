@@ -16,6 +16,7 @@ import { ThreeCyberGrid } from './components/ThreeCyberGrid';
 import { MatterPacketArena } from './components/MatterPacketArena';
 import { AttackConsole } from './components/AttackConsole';
 import { LedgerInspector } from './components/LedgerInspector';
+import { TripartiteNav } from './components/TripartiteNav';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'ATTACK_DEFENSE' | 'LEDGER'>('ATTACK_DEFENSE');
@@ -74,6 +75,11 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
+      {/* PharmaShield Universal Tripartite Command Strip */}
+      <TripartiteNav
+        currentPortal="CYBER_LAB"
+        isConnected={isConnected}
+      />
       {/* 🚨 Security Alert Banner (Cross-Portal Broadcast) */}
       {(securityAlert || isUnderAttack) && (
         <div className="bg-rose-950/95 border-b border-rose-500/60 p-4 sticky top-0 z-50 backdrop-blur-md shadow-2xl animate-in slide-in-from-top duration-200">

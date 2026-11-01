@@ -164,3 +164,119 @@ class WebSocketMessage(BaseModel):
     event_type: str
     timestamp: str
     data: Dict[str, Any]
+
+
+# ===========================================================================
+# Extended Core Problem Schemas (Problems 1, 2, 3, 4, 6)
+# ===========================================================================
+
+class SearchScope(str, Enum):
+    LOCAL = "LOCAL"              # Within city / 25km radius
+    DISTRICT = "DISTRICT"        # Within district / 100km radius
+    INTER_STATE = "INTER_STATE"  # Across states / >100km radius
+
+
+class LandedCostBreakdown(BaseModel):
+    base_price_inr: float
+    shipping_cost_inr: float
+    cold_chain_surcharge_inr: float
+    applicable_taxes_inr: float
+    total_landed_cost_inr: float
+
+
+class MedicineOffer(BaseModel):
+    facility_id: str
+    facility_name: str
+    facility_type: str
+    city: str
+    district: str
+    state: str
+    distance_km: float
+    estimated_transit_hours: float
+    search_scope: SearchScope
+    resource_code: str
+    product_name: str
+    brand: Optional[str] = None
+    generic_name: Optional[str] = None
+    strength: Optional[str] = None
+    pack_size: Optional[str] = None
+    batch_number: str
+    units_available: int
+    stock_confidence: str  # CONFIRMED, LAST_REPORTED, INDICATIVE
+    cost_breakdown: LandedCostBreakdown
+    is_lowest_cost: bool = False
+    is_fastest_delivery: bool = False
+    cold_chain_required: bool = False
+    storage_temp_range: str = "15.0°C – 25.0°C"
+
+
+class MedicineSearchResponse(BaseModel):
+    query: str
+    category: Optional[str] = None
+    user_location: Dict[str, Any]
+    total_eligible_offers: int
+    local_stock_available: bool
+    recommended_offer: Optional[MedicineOffer] = None
+    all_offers: List[MedicineOffer] = []
+    search_timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class StatePriceSummary(BaseModel):
+    state: str
+    min_price_inr: float
+    max_price_inr: float
+    average_price_inr: float
+    facilities_reporting: int
+    total_units_in_state: int
+
+
+class PriceIntelligenceReport(BaseModel):
+    resource_code: str
+    product_name: str
+    national_median_price_inr: float
+    state_breakdown: List[StatePriceSummary]
+    lowest_cost_state: str
+    highest_cost_state: str
+    price_anomaly_detected: bool
+    price_anomaly_details: Optional[str] = None
+    data_freshness_minutes: int = 5
+    generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ColdChainDispositionRequest(BaseModel):
+    shipment_id: str
+    disposition: str  # "CLEARED_WITH_OVERRIDE" or "PERMANENTLY_REJECTED"
+    inspector_name: str = "Dr. S. K. Verma (Chief Clinical Toxicologist)"
+    inspector_license: str = "LIC-QC-9941-COLDCHAIN"
+    justification_notes: str = "Excursion duration was evaluated under stability protocol; product remains clinically viable."
+
+
+class ColdChainDispositionResponse(BaseModel):
+    success: bool
+    shipment_id: str
+    final_status: str
+    inspector_name: str
+    inspector_license: str
+    timestamp_utc: str
+    signature_hex: str
+    event_hash: str
+    audit_chain_status: str = "CHAIN_VALID"
+
+
+class RebalanceRecommendation(BaseModel):
+    recommendation_id: str
+    resource_code: str
+    resource_name: str
+    source_facility_id: str
+    source_facility_name: str
+    source_units_available: int
+    source_dos_days: float
+    target_facility_id: str
+    target_facility_name: str
+    target_units_available: int
+    target_dos_days: float
+    recommended_transfer_quantity: int
+    distance_km: float
+    estimated_transit_minutes: int
+    priority: UrgencyLevel
+    clinical_justification: str

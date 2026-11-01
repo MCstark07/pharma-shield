@@ -37,6 +37,8 @@ class Facility(Base):
 
     # Compatible aliases / helpers
     city = Column(String(100), default="Bhagalpur")
+    state = Column(String(100), default="Bihar")
+    district = Column(String(100), default="Bhagalpur")
     reliability_score = Column(Float, default=92.0)
     created_at = Column(DateTime, default=utc_now)
 

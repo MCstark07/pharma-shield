@@ -4,6 +4,9 @@ import { MatterSupplyDrop } from './components/MatterSupplyDrop';
 import { EmergencyOrderForm } from './components/EmergencyOrderForm';
 import { LoginModal } from './components/LoginModal';
 import { PatientView } from './components/PatientView';
+import { TripartiteNav } from './components/TripartiteNav';
+import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
+import { AIRebalanceModal } from './components/AIRebalanceModal';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
 import {
   Shield,
@@ -49,6 +52,8 @@ export default function App() {
   const [physicsDropCount, setPhysicsDropCount] = useState<number>(1);
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [doctorSuccessToast, setDoctorSuccessToast] = useState<string | null>(null);
+  const [isFinderOpen, setIsFinderOpen] = useState(false);
+  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
 
   // Fetch initial requisition state from backend
   const fetchRequisition = async () => {
@@ -209,6 +214,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+      {/* PharmaShield Universal Tripartite Command Strip */}
+      <TripartiteNav
+        currentPortal="CLINICAL"
+        isConnected={isConnected}
+        onOpenUniversalFinder={() => setIsFinderOpen(true)}
+        onOpenRebalanceModal={() => setIsRebalanceOpen(true)}
+      />
       {/* 🚨 Security Alert Banner */}
       {securityAlert && (
         <div className="bg-rose-950/95 border-b-2 border-rose-500 px-6 py-3.5 flex items-center justify-between text-rose-200 text-xs font-mono shadow-2xl animate-in slide-in-from-top duration-200 sticky top-0 z-50">

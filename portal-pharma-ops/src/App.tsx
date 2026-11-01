@@ -21,13 +21,22 @@ import { VendorLoginModal, VendorInfo } from './components/VendorLoginModal';
 import { ActiveOrderShowcase } from './components/ActiveOrderShowcase';
 import { RequisitionTable, MedicalRequisition } from './components/RequisitionTable';
 import { StockAllocation, InventoryItem } from './components/StockAllocation';
+import { TripartiteNav } from './components/TripartiteNav';
+import { ShipmentTrackingMap } from './components/ShipmentTrackingMap';
+import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
+import { AIRebalanceModal } from './components/AIRebalanceModal';
+import { ColdChainDispositionModal } from './components/ColdChainDispositionModal';
+import { Navigation } from 'lucide-react';
 
 export function App() {
   const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(null);
   const [requisitions, setRequisitions] = useState<MedicalRequisition[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'ACTIVE_ORDERS' | 'ALL_REQUISITIONS' | 'INVENTORY'>('ACTIVE_ORDERS');
+  const [activeTab, setActiveTab] = useState<'ACTIVE_ORDERS' | 'LIVE_SHIPMENTS' | 'ALL_REQUISITIONS' | 'INVENTORY'>('ACTIVE_ORDERS');
+  const [isFinderOpen, setIsFinderOpen] = useState(false);
+  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
+  const [dispositionShipment, setDispositionShipment] = useState<any | null>(null);
 
   // Real-time Notification for Incoming Doctor-Approved Orders
   const [incomingNotification, setIncomingNotification] = useState<{
@@ -199,7 +208,14 @@ export function App() {
 
   // View 2: Clean, Aesthetic Vendor Dashboard
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+      {/* PharmaShield Universal Tripartite Command Strip */}
+      <TripartiteNav
+        currentPortal="LOGISTICS"
+        isConnected={isConnected}
+        onOpenUniversalFinder={() => setIsFinderOpen(true)}
+        onOpenRebalanceModal={() => setIsRebalanceOpen(true)}
+      />
       {/* Real-time Security Alert Banner */}
       {securityAlert && (
         <div className="bg-rose-950/80 border-b border-rose-500/40 px-4 py-3 sticky top-0 z-50 backdrop-blur-md flex items-center justify-between text-xs animate-in slide-in-from-top duration-200">
@@ -244,6 +260,18 @@ export function App() {
 
           {/* Clean Segment Tabs */}
           <div className="flex items-center gap-1 p-1 bg-slate-900/60 rounded-xl border border-slate-800/60 text-xs font-medium">
+            <button
+              onClick={() => setActiveTab('LIVE_SHIPMENTS')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'LIVE_SHIPMENTS'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Live Shipments (GPS)</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('ACTIVE_ORDERS')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -417,6 +445,13 @@ export function App() {
           </div>
         </div>
 
+        {/* Tab 0: Live Medical Shipment Tracking & Cold-Chain Telemetry */}
+        {activeTab === 'LIVE_SHIPMENTS' && (
+          <ShipmentTrackingMap
+            onOpenDispositionModal={(s) => setDispositionShipment(s)}
+          />
+        )}
+
         {/* Tab 1: Focused Active Orders Showcase */}
         {activeTab === 'ACTIVE_ORDERS' && (
           <ActiveOrderShowcase
@@ -441,6 +476,32 @@ export function App() {
           <StockAllocation inventory={inventory} />
         )}
       </main>
+
+      {/* Modals for Problem 2, 3, 4, 6 */}
+      <UniversalMedicineFinderModal
+        isOpen={isFinderOpen}
+        onClose={() => setIsFinderOpen(false)}
+      />
+      <AIRebalanceModal
+        isOpen={isRebalanceOpen}
+        onClose={() => setIsRebalanceOpen(false)}
+        onActionComplete={fetchData}
+      />
+      <ColdChainDispositionModal
+        isOpen={!!dispositionShipment}
+        shipment={dispositionShipment}
+        onClose={() => setDispositionShipment(null)}
+        onDispositionRecorded={(res) => {
+          fetchData();
+          setDispatchSuccessToast({
+            id: res.shipment_id,
+            resource: 'COLD_CHAIN_DISPOSITION',
+            quantity: 1,
+            hash: res.event_hash,
+            signature: res.signature_hex,
+          });
+        }}
+      />
 
       {/* Subtle Minimal Footer */}
       <footer className="py-4 text-center text-[11px] text-slate-600">
