@@ -17,7 +17,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { useWebSocketSync, WebSocketEvent } from './hooks/useWebSocketSync';
-import { VendorLoginModal, VendorInfo } from './components/VendorLoginModal';
+import { VendorLoginModal, VendorInfo, VENDOR_PRESETS } from './components/VendorLoginModal';
 import { ActiveOrderShowcase } from './components/ActiveOrderShowcase';
 import { RequisitionTable, MedicalRequisition } from './components/RequisitionTable';
 import { StockAllocation, InventoryItem } from './components/StockAllocation';
@@ -27,14 +27,14 @@ import { ThreeFreightLogistics } from './components/ThreeFreightLogistics';
 import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
 import { AIRebalanceModal } from './components/AIRebalanceModal';
 import { ColdChainDispositionModal } from './components/ColdChainDispositionModal';
-import { Navigation } from 'lucide-react';
+import { Navigation, Thermometer, ShieldAlert } from 'lucide-react';
 
 export function App() {
-  const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(null);
+  const [currentVendor, setCurrentVendor] = useState<VendorInfo | null>(VENDOR_PRESETS[0]);
   const [requisitions, setRequisitions] = useState<MedicalRequisition[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'ACTIVE_ORDERS' | 'LIVE_SHIPMENTS' | 'ALL_REQUISITIONS' | 'INVENTORY'>('ACTIVE_ORDERS');
+  const [activeTab, setActiveTab] = useState<'ACTIVE_ORDERS' | 'LIVE_SHIPMENTS' | 'COLD_CHAIN' | 'ALL_REQUISITIONS' | 'INVENTORY'>('ACTIVE_ORDERS');
   const [isFinderOpen, setIsFinderOpen] = useState(false);
   const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
   const [dispositionShipment, setDispositionShipment] = useState<any | null>(null);
@@ -274,6 +274,18 @@ export function App() {
             </button>
 
             <button
+              onClick={() => setActiveTab('COLD_CHAIN')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'COLD_CHAIN'
+                  ? 'bg-[#EE503B] text-white font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Thermometer className="w-3.5 h-3.5" />
+              <span>Cold-Chain (2-8°C)</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('ACTIVE_ORDERS')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'ACTIVE_ORDERS'
@@ -456,6 +468,77 @@ export function App() {
             <ShipmentTrackingMap
               onOpenDispositionModal={(s) => setDispositionShipment(s)}
             />
+          </div>
+        )}
+
+        {/* Tab 0.5: Dedicated Cold-Chain Telemetry & Clinical Disposition Sign-Off */}
+        {activeTab === 'COLD_CHAIN' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <span className="text-xs font-mono text-slate-400">COLD-CHAIN SAFE BOUNDS</span>
+                <div className="text-2xl font-bold text-emerald-400 mt-2 font-mono">2.0°C – 8.0°C</div>
+                <p className="text-[11px] text-slate-400 mt-1">Automatic excursion lockdown below or above</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <span className="text-xs font-mono text-slate-400">CURRENT CRYOPACK STATUS</span>
+                <div className="text-2xl font-bold text-cyan-400 mt-2 font-mono">4.2°C (Optimal)</div>
+                <p className="text-[11px] text-slate-400 mt-1">IoT Telemetry active via Bluetooth BLE</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <span className="text-xs font-mono text-slate-400">HUMAN-IN-THE-LOOP PROTOCOL</span>
+                <div className="text-2xl font-bold text-amber-400 mt-2 font-mono">MANDATORY</div>
+                <p className="text-[11px] text-slate-400 mt-1">Excursions can never be auto-cleared by software</p>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-400" />
+                    <span>Active Consignments Requiring Clinical Disposition</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Shipments flagged UNDER_REVIEW due to temperature excursion. Qualified medical officer or toxicologist sign-off required.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-amber-300">SHP-2026-8812</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      UNDER_REVIEW
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-300">
+                    Insulin Glargine / Covaxin Cryo-Box • Route: Mayaganj Central Depot → JLNMCH Emergency
+                  </div>
+                  <div className="text-[11px] text-rose-400 font-mono">
+                    ⚠️ Ambient Spike Logged: 11.8°C (Threshold: 8.0°C) • Excursion Duration: ~8 mins
+                  </div>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setDispositionShipment({
+                      id: 'SHP-2026-8812',
+                      resource_code: 'INSULIN_GLARGINE',
+                      category: 'VACCINES',
+                      current_temp: 11.8,
+                      max_temp: 8.0,
+                      min_temp: 2.0,
+                    })
+                  }
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer shrink-0"
+                >
+                  <Thermometer className="w-4 h-4" />
+                  <span>Review Clinical Disposition</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
