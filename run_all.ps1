@@ -62,20 +62,20 @@ $Portal3Dir = Join-Path $ScriptDir "portal-cyber-lab"
 $Portal3Cmd = "cd /d `"$Portal3Dir`" && npm run dev"
 Start-Process "cmd.exe" -ArgumentList @('/k', $Portal3Cmd) -WindowStyle Normal
 
-# 5. Wait & Open Browser Tabs
+# 5. Wait and Open Browser Tabs
 Write-Host "`n[5/5] Waiting 6 seconds for servers to initialize..." -ForegroundColor Yellow
 Start-Sleep -Seconds 6
 
 Write-Host "[*] Opening browser tabs..." -ForegroundColor Cyan
-Start-Process "http://localhost:5173"
-Start-Process "http://localhost:5174"
-Start-Process "http://localhost:5175"
-Start-Process "http://localhost:8000/docs"
+Start-Process "cmd.exe" -ArgumentList @('/c', 'start', 'http://localhost:5173')
+Start-Process "cmd.exe" -ArgumentList @('/c', 'start', 'http://localhost:5174')
+Start-Process "cmd.exe" -ArgumentList @('/c', 'start', 'http://localhost:5175')
+Start-Process "cmd.exe" -ArgumentList @('/c', 'start', 'http://localhost:8000/docs')
 
 Write-Host "`n==============================================================================" -ForegroundColor Green
 Write-Host "[SUCCESS] PharmaShield Tripartite Platform is LIVE!" -ForegroundColor Green
-Write-Host '  - Central Backend & WebSocket Bus:  http://localhost:8000  (Docs: /docs)' -ForegroundColor White
-Write-Host '  - Portal 1: Clinical (Doctor/Pt):   http://localhost:5173  (Bio-Vial & Matter.js)' -ForegroundColor White
-Write-Host '  - Portal 2: Pharma Operations Hub:  http://localhost:5174  (3D Conduits & Ed25519)' -ForegroundColor White
-Write-Host '  - Portal 3: Cyber Attack & Defense: http://localhost:5175  (Cyber Grid & Deflection)' -ForegroundColor White
+Write-Host "  - Central Backend and WebSocket Bus:  http://localhost:8000  (Docs: /docs)" -ForegroundColor White
+Write-Host "  - Portal 1: Clinical (Doctor/Pt):   http://localhost:5173  (Bio-Vial and 3D Morphos)" -ForegroundColor White
+Write-Host "  - Portal 2: Pharma Operations Hub:  http://localhost:5174  (3D Freight Convoy and Ed25519)" -ForegroundColor White
+Write-Host "  - Portal 3: Cyber Attack and Defense: http://localhost:5175  (Cyber Grid and Deflection)" -ForegroundColor White
 Write-Host "==============================================================================" -ForegroundColor Green

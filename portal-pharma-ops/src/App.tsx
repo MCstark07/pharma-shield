@@ -23,6 +23,7 @@ import { RequisitionTable, MedicalRequisition } from './components/RequisitionTa
 import { StockAllocation, InventoryItem } from './components/StockAllocation';
 import { TripartiteNav } from './components/TripartiteNav';
 import { ShipmentTrackingMap } from './components/ShipmentTrackingMap';
+import { ThreeFreightLogistics } from './components/ThreeFreightLogistics';
 import { UniversalMedicineFinderModal } from './components/UniversalMedicineFinderModal';
 import { AIRebalanceModal } from './components/AIRebalanceModal';
 import { ColdChainDispositionModal } from './components/ColdChainDispositionModal';
@@ -447,9 +448,15 @@ export function App() {
 
         {/* Tab 0: Live Medical Shipment Tracking & Cold-Chain Telemetry */}
         {activeTab === 'LIVE_SHIPMENTS' && (
-          <ShipmentTrackingMap
-            onOpenDispositionModal={(s) => setDispositionShipment(s)}
-          />
+          <div className="space-y-6">
+            <ThreeFreightLogistics
+              shipmentStatus={requisitions[0]?.status || 'IN_TRANSIT'}
+              temperature={requisitions[0]?.temperature_celsius || 4.1}
+            />
+            <ShipmentTrackingMap
+              onOpenDispositionModal={(s) => setDispositionShipment(s)}
+            />
+          </div>
         )}
 
         {/* Tab 1: Focused Active Orders Showcase */}

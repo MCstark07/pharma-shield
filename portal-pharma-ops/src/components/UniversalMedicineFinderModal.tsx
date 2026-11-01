@@ -547,3 +547,4 @@ export const UniversalMedicineFinderModal: React.FC<UniversalFinderModalProps> =
     </div>
   );
 };
+

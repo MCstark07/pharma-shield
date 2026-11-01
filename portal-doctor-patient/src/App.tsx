@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ThreeBioVial } from './components/ThreeBioVial';
+import { ThreeMorphosNetwork } from './components/ThreeMorphosNetwork';
 import { MatterSupplyDrop } from './components/MatterSupplyDrop';
 import { EmergencyOrderForm } from './components/EmergencyOrderForm';
 import { LoginModal } from './components/LoginModal';
@@ -50,6 +51,7 @@ export default function App() {
   });
 
   const [physicsDropCount, setPhysicsDropCount] = useState<number>(1);
+  const [leftVisual, setLeftVisual] = useState<'BIO_VIAL' | 'MORPHOS_NETWORK'>('MORPHOS_NETWORK');
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [doctorSuccessToast, setDoctorSuccessToast] = useState<string | null>(null);
   const [isFinderOpen, setIsFinderOpen] = useState(false);
@@ -376,12 +378,44 @@ export default function App() {
 
             {/* Grid Layout: Digital Twin & Requisition Dispatcher */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-              {/* Left Column: 3D Bio-Vial & Matter.js Dispenser */}
+              {/* Left Column: Morphos 3D Network & Bio-Vial & Matter.js Dispenser */}
               <div className="lg:col-span-5 space-y-6">
-                <ThreeBioVial
-                  status={activeRequisition?.status || 'REQUESTED'}
-                  resourceCode={activeRequisition?.resource_code || 'O_POS_RBC'}
-                />
+                <div className="flex items-center justify-between p-1 bg-slate-900/80 rounded-xl border border-slate-800 text-xs font-mono">
+                  <button
+                    onClick={() => setLeftVisual('MORPHOS_NETWORK')}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer ${
+                      leftVisual === 'MORPHOS_NETWORK'
+                        ? 'bg-cyan-500 text-black font-bold shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Morphos 3D Network</span>
+                  </button>
+                  <button
+                    onClick={() => setLeftVisual('BIO_VIAL')}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer ${
+                      leftVisual === 'BIO_VIAL'
+                        ? 'bg-cyan-500 text-black font-bold shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Droplets className="w-3.5 h-3.5" />
+                    <span>3D Bio-Vial</span>
+                  </button>
+                </div>
+
+                {leftVisual === 'MORPHOS_NETWORK' ? (
+                  <ThreeMorphosNetwork
+                    urgency={activeRequisition?.urgency || 'CRITICAL'}
+                    status={activeRequisition?.status || 'REQUESTED'}
+                  />
+                ) : (
+                  <ThreeBioVial
+                    status={activeRequisition?.status || 'REQUESTED'}
+                    resourceCode={activeRequisition?.resource_code || 'O_POS_RBC'}
+                  />
+                )}
 
                 <MatterSupplyDrop
                   dropTriggerCount={physicsDropCount}
