@@ -92,9 +92,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setCatalog(data);
-        if (data.length > 0 && !selectedItem) {
-          setSelectedItem(data[0]);
-        }
+        // Keep selectedItem null until patient clicks on an item
       }
     } catch (err) {
       console.error('Failed to fetch medicine catalog:', err);
@@ -139,6 +137,7 @@ export default function App() {
         setMyRequests((prev) =>
           prev.map((r) => (r.id === event.data.id ? { ...r, ...event.data, status: 'AUTHORIZED' } : r))
         );
+        setSelectedItem(null);
         setSuccessBanner({
           id: event.data.id,
           message: `🎉 Great news! Your request #${event.data.id} was just APPROVED by the Vendor Depot on Port 5174!`,
@@ -603,9 +602,18 @@ export default function App() {
                   {/* Selected Medicine Summary Card */}
                   <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/50 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider">
-                        SELECTED SUPPLY ITEM
-                      </span>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider">
+                          SELECTED SUPPLY ITEM
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItem(null)}
+                          className="text-[10px] text-slate-400 hover:text-rose-400 underline cursor-pointer"
+                        >
+                          ✕ Change Item
+                        </button>
+                      </div>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold">
                         {selectedItem.category}
                       </span>
@@ -708,8 +716,19 @@ export default function App() {
                   </button>
                 </form>
               ) : (
-                <div className="p-8 text-center text-slate-500 text-xs font-mono">
-                  Select a medicine from the list to create a request.
+                <div className="p-8 text-center rounded-2xl border-2 border-dashed border-slate-700/80 bg-slate-950/60 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mx-auto flex items-center justify-center">
+                    <Pill className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-white font-bold text-sm font-sans">No Medicine Selected Yet</h4>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      Browse the 26 medicines in the catalog on the left and click <strong className="text-cyan-400">+ Select</strong> to choose a medicine and place your request.
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono">
+                    <span>👈 Select any medicine to start</span>
+                  </div>
                 </div>
               )}
             </div>

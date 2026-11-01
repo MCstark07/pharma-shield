@@ -182,25 +182,8 @@ INVENTORY: List[InventoryStock] = [
 
 
 def init_seed_requisitions():
-    """Populates realistic active requisitions on initial boot."""
-    if not REQUISITIONS:
-        req1 = MedicalRequisition(
-            id="REQ-2026-JLNMCH-001",
-            requesting_facility_id="FAC-JLNMCH-01",
-            category=ResourceCategory.BLOOD_COMPONENTS,
-            resource_code="O_POS_RBC",
-            quantity=10,
-            urgency=UrgencyLevel.CRITICAL,
-            clinical_note="ICU Emergency Transfusion - Severe Hemorrhagic Shock",
-            status=RequisitionStatus.PRESCRIPTION_PENDING,
-            patient_id="PT-2026-JLNMCH-04",
-            patient_name="Rohit Kumar",
-            bed_number="Bed #ICU-04",
-            doctor_approved=False,
-            created_at=datetime.now(timezone.utc).isoformat(),
-            temperature_celsius=4.2,
-        )
-        REQUISITIONS[req1.id] = req1
+    """Starts with clean requisitions queue so patient selects medicine with zero defaults."""
+    pass
 
 
 init_seed_requisitions()
